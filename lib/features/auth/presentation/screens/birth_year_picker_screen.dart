@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+// IMPORT: Ensure karein ki ye path aapke project folder structure se match kare
 import 'pregnancy_selection_screen.dart';
 
 class BirthYearPickerScreen extends StatefulWidget {
@@ -11,8 +12,6 @@ class BirthYearPickerScreen extends StatefulWidget {
 class _BirthYearPickerScreenState extends State<BirthYearPickerScreen> {
   late FixedExtentScrollController _scrollController;
   int _selectedYear = 2000;
-
-  // Is flag se control hoga ki "Select" kab dikhana hai
   bool _hasScrolledAtLeastOnce = false;
 
   static const Color _backgroundColor = Color(0xFFD9F2F2);
@@ -35,24 +34,16 @@ class _BirthYearPickerScreenState extends State<BirthYearPickerScreen> {
     super.dispose();
   }
 
+  // REVISED: Method for cleaner navigation
   void _onNextPressed() {
-    // 1. Pehle console mein check karein ki button trigger ho raha hai ya nahi
-    debugPrint(
-      "Navigating to PregnancySelectionScreen with year: $_selectedYear",
+    debugPrint("Navigating with year: $_selectedYear");
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            PregnancySelectionScreen(selectedBirthYear: _selectedYear),
+      ),
     );
-
-    // 2. Navigator.of(context) ka use karein jo zyada reliable hai
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute(
-            builder: (context) =>
-                PregnancySelectionScreen(selectedBirthYear: _selectedYear),
-          ),
-        )
-        .then((value) {
-          // Agar wapas aana ho toh yahan logic likh sakte hain
-          debugPrint("Back from Pregnancy Screen");
-        });
   }
 
   @override
@@ -86,12 +77,14 @@ class _BirthYearPickerScreenState extends State<BirthYearPickerScreen> {
   }
 
   Widget _buildAppBar(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.only(left: 8, top: 8),
+    return Align(
       alignment: Alignment.centerLeft,
-      child: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Colors.black87, size: 28),
-        onPressed: () => Navigator.of(context).pop(),
+      child: Padding(
+        padding: const EdgeInsets.only(left: 8, top: 8),
+        child: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black87, size: 28),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
     );
   }
@@ -124,7 +117,6 @@ class _BirthYearPickerScreenState extends State<BirthYearPickerScreen> {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Selection Bar Background
           Container(
             height: 60,
             width: double.infinity,
@@ -133,15 +125,11 @@ class _BirthYearPickerScreenState extends State<BirthYearPickerScreen> {
               borderRadius: BorderRadius.circular(4),
             ),
           ),
-
-          // Year Picker logic
           NotificationListener<ScrollNotification>(
             onNotification: (notification) {
               if (notification is ScrollUpdateNotification &&
                   !_hasScrolledAtLeastOnce) {
-                setState(() {
-                  _hasScrolledAtLeastOnce = true;
-                });
+                setState(() => _hasScrolledAtLeastOnce = true);
               }
               return true;
             },
@@ -151,17 +139,13 @@ class _BirthYearPickerScreenState extends State<BirthYearPickerScreen> {
               perspective: 0.005,
               diameterRatio: 1.4,
               physics: const FixedExtentScrollPhysics(),
-              onSelectedItemChanged: (index) {
-                setState(() {
-                  _selectedYear = _years[index];
-                });
-              },
+              onSelectedItemChanged: (index) =>
+                  setState(() => _selectedYear = _years[index]),
               childDelegate: ListWheelChildBuilderDelegate(
                 childCount: _years.length,
                 builder: (context, index) {
                   final year = _years[index];
                   final isSelected = year == _selectedYear;
-
                   return Center(
                     child: (isSelected && !_hasScrolledAtLeastOnce)
                         ? const Text(
@@ -199,25 +183,13 @@ class _BirthYearPickerScreenState extends State<BirthYearPickerScreen> {
       width: 200,
       height: 50,
       child: ElevatedButton(
-        onPressed: () {
-          // Debugging ke liye print statement
-          print(
-            "Pushing to PregnancySelectionScreen with year: $_selectedYear",
-          );
-
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) =>
-                  PregnancySelectionScreen(selectedBirthYear: _selectedYear),
-            ),
-          );
-        },
+        onPressed: _onNextPressed, // Method call fix
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF1A237E), // Primary Dark Blue
+          backgroundColor: _primaryText,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(25),
           ),
+          elevation: 0,
         ),
         child: const Text(
           'Next',
