@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+// --- STEP 1: FIX THE IMPORT ---
+// Agar TrackerScreen isi folder mein hai:
+import 'tracker_screen.dart';
+// Agar nahi mil rahi, toh is line ko delete karke 'TrackerScreen()' par light bulb click karke auto-import karein.
+
 class MenstrualJourneyScreen extends StatelessWidget {
   const MenstrualJourneyScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    const Color _bgColor = Color(0xFFD1EDF2);
-    const Color _primaryTextColor = Color(0xFF2E3192);
-    const Color _buttonColor = Color(0xFF252876);
+    const Color bgColor = Color(0xFFD1EDF2);
+    const Color primaryTextColor = Color(0xFF2E3192);
+    const Color buttonColor = Color(0xFF252876);
 
     return Scaffold(
-      backgroundColor: _bgColor,
+      backgroundColor: bgColor,
       appBar: AppBar(
         toolbarHeight: 0,
         elevation: 0,
@@ -33,27 +38,22 @@ class MenstrualJourneyScreen extends StatelessWidget {
                     "Let's begin our journey!",
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: _primaryTextColor,
+                      color: primaryTextColor,
                       fontSize: 28,
                       fontWeight: FontWeight.w900,
-                      letterSpacing: 0.5,
                     ),
                   ),
                 ),
                 Expanded(
                   child: Center(
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      child: Image.asset(
-                        'assets/images/stage.png',
-                        width: constraints.maxWidth * 0.85,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Icon(
-                              Icons.broken_image,
-                              size: 100,
-                              color: Colors.grey,
-                            ),
+                    child: Image.asset(
+                      'assets/images/stage.png',
+                      width: constraints.maxWidth * 0.85,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.broken_image,
+                        size: 100,
+                        color: Colors.grey,
                       ),
                     ),
                   ),
@@ -64,7 +64,7 @@ class MenstrualJourneyScreen extends StatelessWidget {
                     "Next we'll look at your cycle\nand fertility",
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: _primaryTextColor,
+                      color: primaryTextColor,
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
                       height: 1.3,
@@ -79,11 +79,17 @@ class MenstrualJourneyScreen extends StatelessWidget {
                     height: 54,
                     child: ElevatedButton(
                       onPressed: () {
-                        // Add your next navigation here
+                        // --- STEP 2: REMOVED CONST ---
+                        // 'const' hata diya gaya hai navigation se
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => TrackerScreen(),
+                          ),
+                        );
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _buttonColor,
-                        elevation: 0,
+                        backgroundColor: buttonColor,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
                         ),
