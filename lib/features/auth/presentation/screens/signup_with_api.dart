@@ -1,22 +1,21 @@
 import 'package:flutter/material.dart';
 import 'confirmation_screen.dart';
-import '../../../../core/services/auth_service.dart';
+import '../../../core/network/simple_api_client.dart';
 
-class SignupScreen extends StatefulWidget {
-  const SignupScreen({super.key});
+class SignupWithApiScreen extends StatefulWidget {
+  const SignupWithApiScreen({super.key});
 
   @override
-  State<SignupScreen> createState() => _SignupScreenState();
+  State<SignupWithApiScreen> createState() => _SignupWithApiScreenState();
 }
 
-class _SignupScreenState extends State<SignupScreen> {
+class _SignupWithApiScreenState extends State<SignupWithApiScreen> {
   static const Color primary = Color(0xFF1D2671);
 
   final _name = TextEditingController();
   final _email = TextEditingController();
   final _phone = TextEditingController();
   final _dob = TextEditingController();
-  final _password = TextEditingController();
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -27,17 +26,13 @@ class _SignupScreenState extends State<SignupScreen> {
     _email.dispose();
     _phone.dispose();
     _dob.dispose();
-    _password.dispose();
     super.dispose();
   }
 
   void _onContinue() async {
-    // Validate required fields
-    if (_name.text.trim().isEmpty ||
-        _dob.text.trim().isEmpty ||
-        _phone.text.trim().isEmpty) {
+    if (_name.text.trim().isEmpty || _dob.text.trim().isEmpty) {
       setState(() {
-        _errorMessage = 'Name, Date of Birth, and Phone are required';
+        _errorMessage = 'Name and Date of Birth are required';
       });
       return;
     }
@@ -48,58 +43,40 @@ class _SignupScreenState extends State<SignupScreen> {
     });
 
     try {
-      // Format birth date as YYYY-MM-DD
-      String formattedBirthDate = _dob.text.trim();
-      if (formattedBirthDate.isNotEmpty) {
-        final parts = formattedBirthDate.split('/');
-        if (parts.length == 3) {
-          final day = parts[0].padLeft(2, '0');
-          final month = parts[1].padLeft(2, '0');
-          final year = parts[2];
-          formattedBirthDate = '$year-$month-$day';
-        }
-      }
+      // Example API call using our new client
+      // TODO: Replace with actual API call when ready
+      // final response = await ApiEndpoints.registerUser(
+      //   name: _name.text.trim(),
+      //   email: _email.text.trim().isEmpty ? null : _email.text.trim(),
+      //   phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
+      //   dob: _dob.text.trim(),
+      //   password: 'tempPassword123',
+      // );
 
-      // Add country code if missing
-      String formattedPhone = _phone.text.trim();
-      if (!formattedPhone.startsWith('+')) {
-        formattedPhone = '+91$formattedPhone'; // Default to India code
-      }
-
-      // Create registration request
-      final registerRequest = RegisterRequest(
-        fullName: _name.text.trim(),
-        email: _email.text.trim().isEmpty ? null : _email.text.trim(),
-        phoneNumber: formattedPhone,
-        birthDate: formattedBirthDate,
-        password: _password.text.trim().isEmpty
-            ? 'defaultPassword123'
-            : _password.text.trim(),
-      );
-
-      // Call auth service
-      final authService = AuthService();
-      final response = await authService.registerUser(registerRequest);
+      // Mock successful response for demonstration
+      await Future.delayed(const Duration(seconds: 2));
+      final mockResponse = ApiResponse.success({
+        'user_id': '12345',
+        'token': 'mock_jwt_token',
+        'name': _name.text.trim(),
+      });
 
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
 
-        if (response.success) {
-          debugPrint('Registration successful: ${response.data?.userId}');
+        if (mockResponse.success) {
+          debugPrint('Registration successful: ${mockResponse.data}');
 
-          // TODO: Save user token locally
-          // await TokenManager.saveToken(response.data?.token ?? '');
-
-          // Navigate to ConfirmationScreen on success
+          // Navigate to confirmation screen on success
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const ConfirmationScreen()),
           );
         } else {
           setState(() {
-            _errorMessage = response.error ?? 'Registration failed';
+            _errorMessage = mockResponse.error ?? 'Registration failed';
           });
         }
       }
@@ -121,9 +98,9 @@ class _SignupScreenState extends State<SignupScreen> {
   Future<void> _pickDate() async {
     final date = await showDatePicker(
       context: context,
+      initialDate: DateTime.now(),
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
-      initialDate: DateTime.now(),
     );
 
     if (date != null) {
@@ -181,12 +158,17 @@ class _SignupScreenState extends State<SignupScreen> {
                       const SizedBox(height: 25),
 
                       /// DOB
-                      _fieldTitle("Birth of date"),
+                      const Text(
+                        "Birth of date",
+                        style: TextStyle(
+                          color: primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                       const SizedBox(height: 6),
                       _inputBox(
                         controller: _dob,
                         hint: "18/03/2024",
-                        readOnly: true,
                         onTap: _pickDate,
                         suffix: const Icon(Icons.calendar_today, size: 18),
                       ),
@@ -194,14 +176,26 @@ class _SignupScreenState extends State<SignupScreen> {
                       const SizedBox(height: 18),
 
                       /// NAME
-                      _fieldTitle("Full Name"),
+                      const Text(
+                        "Full Name",
+                        style: TextStyle(
+                          color: primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                       const SizedBox(height: 6),
                       _inputBox(controller: _name, hint: "Lois Becket"),
 
                       const SizedBox(height: 18),
 
                       /// EMAIL
-                      _fieldTitle("Email (optional)"),
+                      const Text(
+                        "Email (optional)",
+                        style: TextStyle(
+                          color: primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                       const SizedBox(height: 6),
                       _inputBox(
                         controller: _email,
@@ -211,22 +205,15 @@ class _SignupScreenState extends State<SignupScreen> {
                       const SizedBox(height: 18),
 
                       /// PHONE
-                      _fieldTitle("Phone Number"),
+                      const Text(
+                        "Phone Number",
+                        style: TextStyle(
+                          color: primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                       const SizedBox(height: 6),
                       _phoneField(),
-
-                      const SizedBox(height: 18),
-
-                      /// PASSWORD
-                      _fieldTitle("Password"),
-                      const SizedBox(height: 6),
-                      _inputBox(
-                        controller: _password,
-                        hint: "Enter password",
-                        obscureText: true,
-                      ),
-
-                      const SizedBox(height: 30),
                     ],
                   ),
                 ),
@@ -308,7 +295,7 @@ class _SignupScreenState extends State<SignupScreen> {
                           children: [
                             TextSpan(
                               text: "Login",
-                              style: TextStyle(
+                              style: const TextStyle(
                                 color: primary,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -329,22 +316,11 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
-  /// ---------- WIDGETS ----------
-
-  Widget _fieldTitle(String text) {
-    return Text(
-      text,
-      style: const TextStyle(color: primary, fontWeight: FontWeight.w500),
-    );
-  }
-
   Widget _inputBox({
     required TextEditingController controller,
     required String hint,
-    bool readOnly = false,
     VoidCallback? onTap,
     Widget? suffix,
-    bool obscureText = false,
   }) {
     return Container(
       height: 52,
@@ -358,16 +334,15 @@ class _SignupScreenState extends State<SignupScreen> {
           Expanded(
             child: TextField(
               controller: controller,
-              readOnly: readOnly,
               onTap: onTap,
-              obscureText: obscureText,
-              decoration: InputDecoration(
+              readOnly: onTap != null,
+              decoration: const InputDecoration(
                 hintText: hint,
                 border: InputBorder.none,
               ),
             ),
           ),
-          if (suffix != null) suffix,
+          if (suffix != null) suffix!,
         ],
       ),
     );
@@ -387,9 +362,9 @@ class _SignupScreenState extends State<SignupScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: const Row(
               children: [
-                Text(""),
-                SizedBox(width: 6),
-                Icon(Icons.keyboard_arrow_down),
+                Text("🇩🇰"), // placeholder flag
+                const SizedBox(width: 6),
+                Icon(Icons.keyboard_arrow_down, color: primary, size: 20),
               ],
             ),
           ),
