@@ -48,7 +48,7 @@ class NoInternetException extends ApiException {
 class ApiConfig {
   static const String _baseUrl =
       'https://swampurna-final-production.up.railway.app/api/v1';
-  static const Duration _timeout = Duration(seconds: 30);
+  static const Duration _timeout = Duration(seconds: 60);
   static const Map<String, String> _defaultHeaders = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -263,7 +263,20 @@ class AuthService {
       debugPrint('⏰ TimeoutException details: ${e.message}');
       debugPrint('⏰ TimeoutException type: ${e.runtimeType}');
       debugPrint('⏰ TimeoutException toString: ${e.toString()}');
-      throw NetworkTimeoutException('Request timeout. Please try again.');
+
+      // Check if it's a specific API timeout
+      if (e.toString().contains('Future not completed')) {
+        debugPrint(
+          '🕐 API Request Timeout - Server may be slow or unresponsive',
+        );
+        throw NetworkTimeoutException(
+          'Server is taking too long to respond. Please try again in a moment.',
+        );
+      }
+
+      throw NetworkTimeoutException(
+        'Request timeout. Please check your connection and try again.',
+      );
     } on FormatException catch (e) {
       debugPrint('🔗 URI FormatException: ${e.message}');
       debugPrint('🔗 FormatException type: ${e.runtimeType}');
@@ -279,16 +292,26 @@ class AuthService {
 
   /// Handle HTTP response and create appropriate ApiResponse
   ApiResponse<T> _handleResponse<T>(int? statusCode, String responseBody) {
+    debugPrint('🔍 Response Analysis:');
+    debugPrint('   Status Code: $statusCode');
+    debugPrint('   Response Body: $responseBody');
+    debugPrint('   Body Length: ${responseBody.length}');
+    debugPrint('   Body Empty: ${responseBody.isEmpty}');
+
     if (statusCode != null && statusCode! >= 200 && statusCode! < 300) {
+      debugPrint('✅ Success Response (2xx)');
       if (responseBody.isEmpty) {
+        debugPrint('⚠️ Empty response body');
         return ApiResponse.success(null, statusCode: statusCode);
       }
 
       try {
         final jsonData = jsonDecode(responseBody);
+        debugPrint('✅ JSON parsed successfully: ${jsonData.runtimeType}');
         return ApiResponse.success(jsonData, statusCode: statusCode);
       } catch (e) {
-        debugPrint('JSON parsing error: $e');
+        debugPrint('❌ JSON parsing error: $e');
+        debugPrint('❌ Raw response that failed to parse: $responseBody');
         return ApiResponse.error(
           'Failed to parse response data',
           statusCode: statusCode,
@@ -297,52 +320,30 @@ class AuthService {
     }
 
     // Handle error responses
+    debugPrint('❌ Error Response (Non-2xx): $statusCode');
     String errorMessage = 'Request failed';
     if (responseBody.isNotEmpty) {
       try {
         final errorData = jsonDecode(responseBody);
+        debugPrint('📄 Error JSON parsed: $errorData');
         if (errorData is Map<String, dynamic>) {
           errorMessage =
-              errorData['message'] ??
-              errorData['error'] ??
-              errorData['detail'] ??
-              'Unknown error occurred';
+              errorData['message'] ?? errorData['error'] ?? 'Request failed';
+          debugPrint('📄 Extracted error message: $errorMessage');
+        } else {
+          debugPrint('📄 Error data is not a Map: ${errorData.runtimeType}');
         }
       } catch (e) {
-        debugPrint('Error parsing error response: $e');
+        debugPrint('❌ Error JSON parsing failed: $e');
+        debugPrint('❌ Raw error response: $responseBody');
+        errorMessage = 'Server error: $statusCode';
       }
+    } else {
+      debugPrint('📄 Empty error response body');
+      errorMessage = 'Server error: $statusCode';
     }
 
-    // Handle specific HTTP status codes
-    switch (statusCode) {
-      case 400:
-        errorMessage = 'Bad request: $errorMessage';
-        break;
-      case 401:
-        errorMessage = 'Unauthorized: Please login again';
-        break;
-      case 403:
-        errorMessage = 'Forbidden: You don\'t have permission';
-        break;
-      case 404:
-        errorMessage = 'Not found: The requested resource was not found';
-        break;
-      case 429:
-        errorMessage = 'Too many requests: Please try again later';
-        break;
-      case 500:
-        errorMessage = 'Server error: Please try again later';
-        break;
-      case 502:
-        errorMessage = 'Service unavailable: Please try again later';
-        break;
-      case 503:
-        errorMessage = 'Service maintenance: Please try again later';
-        break;
-      default:
-        errorMessage = 'Request failed: $errorMessage';
-    }
-
+    debugPrint('🚫 Final error message: $errorMessage');
     return ApiResponse.error(errorMessage, statusCode: statusCode);
   }
 
@@ -420,25 +421,89 @@ class AuthService {
     }
   }
 
-  /// Login user
+  /// Send OTP for login
   Future<ApiResponse<Map<String, dynamic>>> loginUser({
-    required String phone,
-    required String password,
+    required String email,
+    String purpose = 'login',
+    int maxRetries = 2,
+  }) async {
+    int retryCount = 0;
+
+    while (retryCount <= maxRetries) {
+      try {
+        debugPrint(
+          '📧 Attempt ${retryCount + 1}/${maxRetries + 1} to send OTP to: $email',
+        );
+
+        final response = await _makeRequest<Map<String, dynamic>>(
+          'POST',
+          '/auth/otp/send',
+          body: {'email': email, 'purpose': purpose},
+          requiresAuth: false,
+          useHttps: retryCount > 0, // Try HTTP on retry
+        );
+
+        debugPrint('✅ OTP sent successfully on attempt ${retryCount + 1}');
+        return response;
+      } on TimeoutException catch (e) {
+        debugPrint('⏰ Timeout on attempt ${retryCount + 1}: ${e.toString()}');
+
+        if (retryCount == maxRetries) {
+          debugPrint('🚫 All retry attempts failed');
+          return ApiResponse.error(
+            'Server is not responding. Please check your internet connection and try again later.',
+            statusCode: 408,
+          );
+        } else {
+          debugPrint('🔄 Retrying in 2 seconds...');
+          await Future.delayed(const Duration(seconds: 2));
+          retryCount++;
+        }
+      } catch (e) {
+        debugPrint('❌ Error on attempt ${retryCount + 1}: $e');
+
+        if (retryCount == maxRetries) {
+          if (e is ApiException) {
+            return ApiResponse.error(e.message, statusCode: e.statusCode);
+          }
+          return ApiResponse.error('Failed to send OTP: ${e.toString()}');
+        } else {
+          debugPrint('🔄 Retrying in 2 seconds...');
+          await Future.delayed(const Duration(seconds: 2));
+          retryCount++;
+        }
+      }
+    }
+
+    return ApiResponse.error(
+      'Failed to send OTP after multiple attempts.',
+      statusCode: 500,
+    );
+  }
+
+  /// Verify OTP for registration
+  Future<ApiResponse<Map<String, dynamic>>> verifyRegistrationOtp({
+    required String email,
+    required String otp,
   }) async {
     try {
+      debugPrint('🔐 Verifying registration OTP for email: $email');
+
       final response = await _makeRequest<Map<String, dynamic>>(
         'POST',
-        '/auth/login',
-        body: {'phone': phone, 'password': password},
+        '/auth/register/otp/verify',
+        body: {'email': email, 'otp': otp},
         requiresAuth: false,
       );
 
+      debugPrint('✅ Registration OTP verification successful');
       return response;
     } catch (e) {
+      debugPrint('❌ Registration OTP verification error: $e');
       if (e is ApiException) {
         return ApiResponse.error(e.message, statusCode: e.statusCode);
       }
-      return ApiResponse.error('Login failed: ${e.toString()}');
+      return ApiResponse.error('OTP verification failed: ${e.toString()}');
     }
   }
 

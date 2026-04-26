@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'signup_screen.dart';
 import 'source_selection_screen.dart';
+import '../../../../core/services/auth_service.dart';
 
 class OtpScreen extends StatefulWidget {
-  const OtpScreen({super.key});
+  final String phoneNumber;
+
+  const OtpScreen({super.key, required this.phoneNumber});
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
@@ -27,6 +30,8 @@ class _OtpScreenState extends State<OtpScreen> {
 
   Timer? _timer;
   int _remainingSeconds = 120;
+  bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -60,18 +65,113 @@ class _OtpScreenState extends State<OtpScreen> {
     }
   }
 
-  void _onLogin() {
+  void _onLogin() async {
     final otp = _otpControllers.map((c) => c.text).join();
-    // As it is navigation code
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const SourceSelectionScreen()),
-    );
+
+    // Validate OTP
+    if (otp.length != 4) {
+      setState(() {
+        _errorMessage = 'Please enter a 4-digit OTP';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      debugPrint('🔐 Verifying OTP for: ${widget.phoneNumber}');
+
+      // Check if this is email (registration) or phone (login) flow
+      final bool isEmailFlow = widget.phoneNumber.contains('@');
+
+      final authService = AuthService();
+      final response = isEmailFlow
+          ? await authService.verifyRegistrationOtp(
+              email: widget.phoneNumber,
+              otp: otp,
+            )
+          : await authService.verifyOtp(phone: widget.phoneNumber, otp: otp);
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+
+        if (response.success) {
+          debugPrint('✅ OTP verification successful');
+
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Email verified successfully!'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+
+          // Navigate to Home screen on success
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const SourceSelectionScreen()),
+            (route) => false,
+          );
+        } else {
+          setState(() {
+            _errorMessage = response.error ?? 'Invalid OTP. Please try again.';
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ OTP verification error: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Network error. Please try again.';
+        });
+      }
+    }
   }
 
-  void _onResend() {
-    setState(() => _remainingSeconds = 120);
-    _startTimer();
+  void _onResend() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      debugPrint('Resending OTP to: ${widget.phoneNumber}');
+
+      // Call send-otp API again
+      final authService = AuthService();
+      final response = await authService.sendOtp(phone: widget.phoneNumber);
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+
+        if (response.success) {
+          debugPrint('OTP resent successfully');
+          setState(() => _remainingSeconds = 120);
+          _startTimer();
+        } else {
+          setState(() {
+            _errorMessage = response.error ?? 'Failed to resend OTP';
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Resend OTP error: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Network error. Please try again.';
+        });
+      }
+    }
   }
 
   void _onBack() => Navigator.pop(context);

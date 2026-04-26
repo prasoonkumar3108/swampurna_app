@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'confirmation_screen.dart';
+import 'package:flutter/services.dart';
 import '../../../../core/services/auth_service.dart';
+import 'otp_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -89,13 +90,20 @@ class _SignupScreenState extends State<SignupScreen> {
         if (response.success) {
           debugPrint('Registration successful: ${response.data?.userId}');
 
+          // Extract email from the registration request
+          String userEmail = _email.text.trim().isEmpty
+              ? ''
+              : _email.text.trim();
+
           // TODO: Save user token locally
           // await TokenManager.saveToken(response.data?.token ?? '');
 
-          // Navigate to ConfirmationScreen on success
+          // Navigate to OTP Screen for email verification
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const ConfirmationScreen()),
+            MaterialPageRoute(
+              builder: (_) => OtpScreen(phoneNumber: userEmail),
+            ),
           );
         } else {
           setState(() {

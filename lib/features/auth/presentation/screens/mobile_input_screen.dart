@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'otp_screen.dart';
 import 'signup_screen.dart';
+import '../../../../core/services/auth_service.dart';
 
 class MobileInputScreen extends StatefulWidget {
   const MobileInputScreen({super.key});
@@ -17,19 +18,135 @@ class _MobileInputScreenState extends State<MobileInputScreen> {
   final TextEditingController _mobileController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  // Validation Logic
-  void _validateAndContinue() {
+  bool _isLoading = false;
+  String? _errorMessage;
+  bool _isEmailMode = false;
+
+  // Toggle between phone and email mode
+  void _toggleInputMode() {
+    setState(() {
+      _isEmailMode = !_isEmailMode;
+      _mobileController.clear();
+      _errorMessage = null;
+    });
+  }
+
+  // Validation Logic with API call
+  void _validateAndContinue() async {
     String value = _mobileController.text.trim();
+
+    // Reset error state
+    setState(() {
+      _errorMessage = null;
+    });
+
     if (value.isEmpty) {
-      _showSnackBar("Please enter your mobile number");
-    } else if (value.length < 10) {
-      _showSnackBar("Please enter a valid 10-digit number");
+      setState(() {
+        _errorMessage = _isEmailMode
+            ? "Please enter your email address"
+            : "Please enter your mobile number";
+      });
+      return;
+    }
+
+    if (_isEmailMode) {
+      // Email validation
+      if (!value.contains('@') || !value.contains('.')) {
+        setState(() {
+          _errorMessage = "Please enter a valid email address";
+        });
+        return;
+      }
     } else {
-      // Navigate to OTP Screen
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const OtpScreen()),
-      );
+      // Phone validation
+      if (value.length < 10) {
+        setState(() {
+          _errorMessage = "Please enter a valid 10-digit number";
+        });
+        return;
+      }
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      if (_isEmailMode) {
+        debugPrint('Sending OTP to email: $value');
+
+        // Call send-otp API with email
+        final authService = AuthService();
+        final response = await authService.loginUser(
+          email: value,
+          purpose: 'login',
+        );
+
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+
+          if (response.success) {
+            debugPrint('OTP sent successfully');
+            // Navigate to OTP Screen with email
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => OtpScreen(
+                  phoneNumber: value,
+                ), // Reuse phoneNumber field for email
+              ),
+            );
+          } else {
+            setState(() {
+              _errorMessage = response.error ?? 'Failed to send OTP';
+            });
+          }
+        }
+      } else {
+        // Phone mode - keep existing phone logic
+        String formattedPhone = value.trim();
+        if (!formattedPhone.startsWith('+')) {
+          formattedPhone = '+91$formattedPhone'; // Default to India code
+        }
+
+        debugPrint('Sending OTP to phone: $formattedPhone');
+
+        // Call send-otp API with phone
+        final authService = AuthService();
+        final response = await authService.sendOtp(phone: formattedPhone);
+
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+
+          if (response.success) {
+            debugPrint('OTP sent successfully');
+            // Navigate to OTP Screen with phone number
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => OtpScreen(phoneNumber: formattedPhone),
+              ),
+            );
+          } else {
+            setState(() {
+              _errorMessage = response.error ?? 'Failed to send OTP';
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Send OTP error: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage =
+              'Unable to send OTP. Please check your connection and try again.';
+        });
+      }
     }
   }
 
@@ -78,7 +195,24 @@ class _MobileInputScreenState extends State<MobileInputScreen> {
 
               const SizedBox(height: 80),
 
-              // 2. Input Section (Aligned to Line)
+              // 2. Dynamic Title
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  _isEmailMode
+                      ? 'Enter your email'
+                      : 'Enter your mobile number',
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: _primaryColor,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 40),
+
+              // 3. Input Section (Aligned to Line)
               Stack(
                 alignment: Alignment.bottomLeft,
                 children: [
@@ -98,7 +232,9 @@ class _MobileInputScreenState extends State<MobileInputScreen> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Image.asset(
-                          'assets/images/mail.png',
+                          _isEmailMode
+                              ? 'assets/images/mail.png'
+                              : 'assets/images/phone.png',
                           width: 22,
                           height: 22,
                           color: _primaryColor,
@@ -107,16 +243,20 @@ class _MobileInputScreenState extends State<MobileInputScreen> {
                         Expanded(
                           child: TextField(
                             controller: _mobileController,
-                            keyboardType: TextInputType.phone,
+                            keyboardType: _isEmailMode
+                                ? TextInputType.emailAddress
+                                : TextInputType.phone,
                             cursorColor: _primaryColor,
                             style: const TextStyle(
                               fontSize: 18,
                               color: _primaryColor,
                               fontWeight: FontWeight.w400,
                             ),
-                            decoration: const InputDecoration(
-                              hintText: 'Mobile Number',
-                              hintStyle: TextStyle(
+                            decoration: InputDecoration(
+                              hintText: _isEmailMode
+                                  ? 'Email Address'
+                                  : 'Mobile Number',
+                              hintStyle: const TextStyle(
                                 color: _primaryColor,
                                 fontSize: 18,
                                 fontWeight: FontWeight.w400,
@@ -135,16 +275,14 @@ class _MobileInputScreenState extends State<MobileInputScreen> {
 
               const SizedBox(height: 25),
 
-              // 3. Use Email-ID
+              // 4. Toggle Input Mode Button
               Align(
                 alignment: Alignment.centerRight,
                 child: InkWell(
-                  onTap: () {
-                    // Logic for Email Login
-                  },
-                  child: const Text(
-                    'Use Email-ID',
-                    style: TextStyle(
+                  onTap: _toggleInputMode,
+                  child: Text(
+                    _isEmailMode ? 'Use Mobile Number' : 'Use Email-ID',
+                    style: const TextStyle(
                       color: _primaryColor,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -155,12 +293,38 @@ class _MobileInputScreenState extends State<MobileInputScreen> {
 
               const Spacer(),
 
+              // Error Message Display
+              if (_errorMessage != null)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error, color: Colors.red, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
               // 4. Continue Button
               SizedBox(
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton(
-                  onPressed: _validateAndContinue,
+                  onPressed: _isLoading ? null : _validateAndContinue,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF252876),
                     shape: RoundedRectangleBorder(
@@ -168,14 +332,25 @@ class _MobileInputScreenState extends State<MobileInputScreen> {
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    'Continue',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                      : const Text(
+                          'Continue',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                 ),
               ),
 
