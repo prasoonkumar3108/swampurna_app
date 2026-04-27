@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'signup_screen.dart';
 import 'source_selection_screen.dart';
+import 'confirmation_screen.dart';
+import '../models/onboarding_data.dart';
 import '../../../../core/services/auth_service.dart';
 
 class OtpScreen extends StatefulWidget {
@@ -112,12 +114,8 @@ class _OtpScreenState extends State<OtpScreen> {
             ),
           );
 
-          // Navigate to Home screen on success
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (_) => const SourceSelectionScreen()),
-            (route) => false,
-          );
+          // Navigate through multi-step onboarding flow
+          _navigateToOnboardingFlow();
         } else {
           setState(() {
             _errorMessage = response.error ?? 'Invalid OTP. Please try again.';
@@ -172,6 +170,22 @@ class _OtpScreenState extends State<OtpScreen> {
         });
       }
     }
+  }
+
+  void _navigateToOnboardingFlow() {
+    // Initialize onboarding data with email and OTP
+    final onboardingData = <String, dynamic>{
+      'email': widget.phoneNumber,
+      'otp': _otpControllers.map((c) => c.text).join(),
+    };
+
+    // Navigate to ConfirmationScreen first
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ConfirmationScreen(onboardingData: onboardingData),
+      ),
+    );
   }
 
   void _onBack() => Navigator.pop(context);

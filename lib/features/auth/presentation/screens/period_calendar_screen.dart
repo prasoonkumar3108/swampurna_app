@@ -3,7 +3,9 @@ import 'package:intl/intl.dart';
 import 'period_duration_picker_screen.dart';
 
 class PeriodCalendarScreen extends StatefulWidget {
-  const PeriodCalendarScreen({super.key});
+  final Map<String, dynamic> onboardingData;
+
+  const PeriodCalendarScreen({super.key, required this.onboardingData});
 
   @override
   State<PeriodCalendarScreen> createState() => _PeriodCalendarScreenState();
@@ -32,10 +34,15 @@ class _PeriodCalendarScreenState extends State<PeriodCalendarScreen> {
 
   // Common Navigation Helper
   void _navigateToDurationPicker(DateTime? date) {
+    // Update onboarding data with last period date
+    final updatedData = Map<String, dynamic>.from(widget.onboardingData);
+    updatedData['lastPeriodDate'] = date?.toIso8601String();
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PeriodDurationPickerScreen(selectedDate: date),
+        builder: (context) =>
+            PeriodDurationPickerScreen(onboardingData: updatedData),
       ),
     );
   }

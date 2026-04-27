@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'testimonial_screen.dart';
 
 class CycleLengthPickerScreen extends StatefulWidget {
-  const CycleLengthPickerScreen({super.key});
+  final Map<String, dynamic> onboardingData;
+
+  const CycleLengthPickerScreen({super.key, required this.onboardingData});
 
   @override
   State<CycleLengthPickerScreen> createState() =>
@@ -118,9 +120,17 @@ class _CycleLengthPickerScreenState extends State<CycleLengthPickerScreen> {
                 onPressed: () {
                   // Example navigation logic
                   debugPrint("Moving forward with: $selectedValue days");
+
+                  // Update onboarding data with cycle length
+                  final updatedData = Map<String, dynamic>.from(
+                    widget.onboardingData,
+                  );
+                  updatedData['cycleLength'] = selectedValue;
+
                   Navigator.of(context, rootNavigator: true).push(
                     MaterialPageRoute(
-                      builder: (context) => TestimonialScreen(),
+                      builder: (context) =>
+                          TestimonialScreen(onboardingData: updatedData),
                     ),
                   );
                 },

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/services/auth_service.dart';
+import '../../../../core/models/register_request.dart';
 import 'otp_screen.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -88,7 +89,9 @@ class _SignupScreenState extends State<SignupScreen> {
         });
 
         if (response.success) {
-          debugPrint('Registration successful: ${response.data?.userId}');
+          debugPrint(
+            'Registration successful: ${response.data?['user_id'] ?? response.data?['id'] ?? response.data?['uid']}',
+          );
 
           // Extract email from the registration request
           String userEmail = _email.text.trim().isEmpty

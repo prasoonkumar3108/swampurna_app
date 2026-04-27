@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'cycle_length_picker_screen.dart';
 
 class PeriodDurationPickerScreen extends StatefulWidget {
-  final DateTime? selectedDate;
+  final Map<String, dynamic> onboardingData;
 
-  const PeriodDurationPickerScreen({super.key, this.selectedDate});
+  const PeriodDurationPickerScreen({super.key, required this.onboardingData});
 
   @override
   State<PeriodDurationPickerScreen> createState() =>
@@ -123,14 +123,18 @@ class _PeriodDurationPickerScreenState
   }
 
   void _handleNavigation() {
-    debugPrint(
-      "Navigating with: Date: ${widget.selectedDate}, Duration: $_selectedDays days",
-    );
+    debugPrint("Navigating with: Duration: $_selectedDays days");
 
-    // Replace 'NextScreen' with your actual next screen
+    // Update onboarding data with period duration
+    final updatedData = Map<String, dynamic>.from(widget.onboardingData);
+    updatedData['periodDuration'] = _selectedDays;
+
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => CycleLengthPickerScreen()),
+      MaterialPageRoute(
+        builder: (context) =>
+            CycleLengthPickerScreen(onboardingData: updatedData),
+      ),
     );
   }
 }

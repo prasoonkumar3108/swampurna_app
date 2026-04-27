@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'source_selection_screen.dart';
 
 class ConfirmationScreen extends StatelessWidget {
-  const ConfirmationScreen({super.key});
+  final Map<String, dynamic> onboardingData;
+
+  const ConfirmationScreen({super.key, required this.onboardingData});
 
   @override
   Widget build(BuildContext context) {
@@ -36,18 +38,24 @@ class ConfirmationScreen extends StatelessWidget {
                 children: [
                   // Yes option
                   _buildOptionCard(
-                    text: 'Yes',
+                    text: 'Yes, It\'s for myself.',
                     onTap: () {
                       print('Selected: Yes - Using for myself');
+                      // Update onboarding data with source
+                      final updatedData = Map<String, dynamic>.from(
+                        onboardingData,
+                      );
+                      updatedData['source'] = 'self';
 
-                      // Navigate to SurveyScreen
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => const SourceSelectionScreen(),
+                      // Navigate to SourceSelectionScreen
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => SourceSelectionScreen(
+                            onboardingData: updatedData,
                           ),
-                        );
-                      });
+                        ),
+                      );
                     },
                   ),
 
@@ -58,12 +66,19 @@ class ConfirmationScreen extends StatelessWidget {
                     text: 'No, It\'s for my partner.',
                     onTap: () {
                       print('Selected: No - Using for partner');
-                      // TODO: Navigate to appropriate flow
-                      // Navigate to SurveyScreen
+                      // Update onboarding data with source
+                      final updatedData = Map<String, dynamic>.from(
+                        onboardingData,
+                      );
+                      updatedData['source'] = 'partner';
+
+                      // Navigate to SourceSelectionScreen
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const SourceSelectionScreen(),
+                          builder: (_) => SourceSelectionScreen(
+                            onboardingData: updatedData,
+                          ),
                         ),
                       );
                     },

@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'period_calendar_screen.dart';
 
 class PregnancySelectionScreen extends StatelessWidget {
-  final int selectedBirthYear;
-  const PregnancySelectionScreen({super.key, required this.selectedBirthYear});
+  final Map<String, dynamic> onboardingData;
+
+  const PregnancySelectionScreen({super.key, required this.onboardingData});
 
   @override
   Widget build(BuildContext context) {
@@ -90,11 +91,26 @@ class PregnancySelectionScreen extends StatelessWidget {
             ),
           ),
           onPressed: () {
+            // Determine pregnancy status based on selection
+            bool? isPregnant;
+            if (text == "Yes, I am") {
+              isPregnant = true;
+            } else if (text.contains("No")) {
+              isPregnant = false;
+            } else {
+              isPregnant = null; // For other options
+            }
+
+            // Update onboarding data with pregnancy status
+            final updatedData = Map<String, dynamic>.from(onboardingData);
+            updatedData['isPregnant'] = isPregnant;
+
             // Navigation with proper Context
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const PeriodCalendarScreen(),
+                builder: (context) =>
+                    PeriodCalendarScreen(onboardingData: updatedData),
               ),
             );
           },

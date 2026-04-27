@@ -77,7 +77,7 @@ class _MobileInputScreenState extends State<MobileInputScreen> {
 
         // Call send-otp API with email
         final authService = AuthService();
-        final response = await authService.loginUser(
+        final response = await authService.sendOtp(
           email: value,
           purpose: 'login',
         );
@@ -115,7 +115,10 @@ class _MobileInputScreenState extends State<MobileInputScreen> {
 
         // Call send-otp API with phone
         final authService = AuthService();
-        final response = await authService.sendOtp(phone: formattedPhone);
+        final response = await authService.sendOtp(
+          phone: formattedPhone,
+          purpose: 'login',
+        );
 
         if (mounted) {
           setState(() {

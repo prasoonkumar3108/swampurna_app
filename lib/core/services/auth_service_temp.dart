@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -6,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../config/api_config.dart';
 import '../models/api_response.dart';
 import '../models/register_request.dart';
+import '../models/login_request.dart';
 import 'token_storage_service.dart';
 
 /// Custom API exceptions for better error handling
@@ -71,42 +71,24 @@ class AuthService {
     }
   }
 
-  /// Generic HTTP request method with comprehensive logging (CORS proxy only for web)
+  /// Generic HTTP request method
   Future<ApiResponse<T>> _makeRequest<T>(
     String method,
     String endpoint, {
     Map<String, dynamic>? body,
     Map<String, String>? headers,
     bool requiresAuth = true,
-    bool useCorsProxy = kIsWeb, // Only enable CORS proxy for web development
   }) async {
     try {
       // Build URL
       String cleanEndpoint = endpoint.startsWith('/') ? endpoint : '/$endpoint';
       String url = '${ApiConfig.baseUrl}$cleanEndpoint';
 
-      // CORS Proxy for Web Development Only
-      if (useCorsProxy) {
-        const String proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-        url = '$proxyUrl$url';
-        debugPrint('🌐 [CORS PROXY] Enabled for Web Development');
-        debugPrint('🔗 Original URL: ${ApiConfig.baseUrl}$cleanEndpoint');
-        debugPrint('🔗 Proxy URL: $url');
-      }
-
       // Prepare headers
       final requestHeaders = <String, String>{
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       };
-
-      // Add CORS headers for web development only
-      if (kIsWeb) {
-        requestHeaders['Origin'] =
-            'https://localhost:3000'; // Development origin
-        requestHeaders['X-Requested-With'] = 'XMLHttpRequest';
-        debugPrint('🌐 [CORS HEADERS] Added Origin and X-Requested-With');
-      }
 
       // Add authorization header if required
       if (requiresAuth) {
@@ -121,21 +103,9 @@ class AuthService {
         requestHeaders.addAll(headers);
       }
 
-      // 🔍 REQUEST LOGGING
-      debugPrint('\n🌐 [API REQUEST] --> $method $url');
-      debugPrint('📋 Headers: ${_formatHeadersForLog(requestHeaders)}');
-      if (body != null) {
-        debugPrint('📦 Body: ${_formatJsonForLog(body)}');
-      } else {
-        debugPrint('📦 Body: (empty)');
-      }
-      debugPrint('🔐 Auth Required: $requiresAuth');
-      debugPrint('⏰ Timestamp: ${DateTime.now().toIso8601String()}');
-
       // Make request
       late http.Response response;
       final uri = Uri.parse(url);
-      final startTime = DateTime.now();
 
       switch (method.toUpperCase()) {
         case 'GET':
@@ -161,29 +131,6 @@ class AuthService {
         default:
           throw ApiException('Unsupported HTTP method: $method');
       }
-
-      final endTime = DateTime.now();
-      final duration = endTime.difference(startTime);
-
-      // 🔍 RESPONSE LOGGING
-      debugPrint('\n📬 [API RESPONSE] <-- $method $url');
-      debugPrint('📊 Status Code: ${response.statusCode}');
-      debugPrint('⏱️ Duration: ${duration.inMilliseconds}ms');
-      debugPrint(
-        '📋 Response Headers: ${_formatHeadersForLog(response.headers)}',
-      );
-
-      if (response.body.isNotEmpty) {
-        try {
-          final parsedBody = jsonDecode(response.body);
-          debugPrint('📦 Response Body: ${_formatJsonForLog(parsedBody)}');
-        } catch (e) {
-          debugPrint('📦 Response Body (raw): ${response.body}');
-        }
-      } else {
-        debugPrint('📦 Response Body: (empty)');
-      }
-      debugPrint('⏰ Timestamp: ${endTime.toIso8601String()}');
 
       // Handle response
       if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -211,132 +158,27 @@ class AuthService {
         }
         return ApiResponse.error(errorMessage, statusCode: response.statusCode);
       }
-    } on SocketException catch (e, stackTrace) {
-      // 🔍 ERROR LOGGING - SocketException
-      debugPrint('\n❌ [API ERROR] <-- SocketException');
-      debugPrint('🔥 Error: ${e.message}');
-      debugPrint('📍 Address: ${e.address}');
-      debugPrint('🔗 Port: ${e.port}');
-      debugPrint('📋 Stack Trace:\n${_formatStackTrace(stackTrace)}');
-      debugPrint('⏰ Timestamp: ${DateTime.now().toIso8601String()}');
-
+    } on SocketException catch (e) {
+      debugPrint('🔌 SocketException: ${e.message}');
       return ApiResponse.error(
         'No internet connection. Please check your network.',
         statusCode: 0,
       );
-    } on TimeoutException catch (e, stackTrace) {
-      // 🔍 ERROR LOGGING - TimeoutException
-      debugPrint('\n❌ [API ERROR] <-- TimeoutException');
-      debugPrint('🔥 Error: ${e.message}');
-      debugPrint('⏱️ Duration: ${e.duration?.inMilliseconds ?? 'unknown'}ms');
-      debugPrint('📋 Stack Trace:\n${_formatStackTrace(stackTrace)}');
-      debugPrint('⏰ Timestamp: ${DateTime.now().toIso8601String()}');
-
-      return ApiResponse.error(
-        'Request timed out. Please check your connection.',
-        statusCode: 408,
-      );
-    } on http.ClientException catch (e, stackTrace) {
-      // 🔍 ERROR LOGGING - ClientException (CORS/Web Issues)
-      debugPrint('\n❌ [API ERROR] <-- ClientException');
-      debugPrint('🔥 Error: ${e.message}');
-      debugPrint('🌐 URL: ${e.uri}');
-      debugPrint('📋 Stack Trace:\n${_formatStackTrace(stackTrace)}');
-      debugPrint('⏰ Timestamp: ${DateTime.now().toIso8601String()}');
-
-      // Check for common CORS/Mixed Content issues
-      String errorMessage = 'Network request failed';
-      if (e.message.toLowerCase().contains('cors')) {
-        errorMessage =
-            'CORS policy blocked this request. The server may need to allow your origin.';
-        debugPrint('🚫 CORS Issue Detected: ${e.message}');
-      } else if (e.message.toLowerCase().contains('mixed content')) {
-        errorMessage =
-            'Mixed content error. The page was loaded over HTTPS but requested an HTTP resource.';
-        debugPrint('🚫 Mixed Content Issue Detected: ${e.message}');
-      } else if (e.message.toLowerCase().contains('certificate')) {
-        errorMessage =
-            'SSL certificate error. The server certificate may be invalid.';
-        debugPrint('🚫 SSL Certificate Issue Detected: ${e.message}');
-      } else if (e.message.toLowerCase().contains('connection')) {
-        errorMessage =
-            'Connection failed. Please check if the server is reachable.';
-        debugPrint('🚫 Connection Issue Detected: ${e.message}');
-      }
-
-      return ApiResponse.error(errorMessage, statusCode: 0);
-    } catch (e, stackTrace) {
-      // 🔍 ERROR LOGGING - General Exception
-      debugPrint('\n❌ [API ERROR] <-- General Exception');
-      debugPrint('🔥 Error: $e');
-      debugPrint('🔍 Type: ${e.runtimeType}');
-      debugPrint('📋 Stack Trace:\n${_formatStackTrace(stackTrace)}');
-      debugPrint('⏰ Timestamp: ${DateTime.now().toIso8601String()}');
-
+    } catch (e) {
+      debugPrint('❌ Unexpected error: $e');
       return ApiResponse.error('An unexpected error occurred: ${e.toString()}');
     }
   }
 
-  /// Format headers for readable logging
-  String _formatHeadersForLog(Map<String, dynamic> headers) {
-    if (headers.isEmpty) return '(empty)';
-
-    final formatted = headers.entries
-        .map((entry) {
-          String value = entry.value;
-          // Mask sensitive headers
-          if (entry.key.toLowerCase().contains('authorization') &&
-              value.length > 20) {
-            value = '${value.substring(0, 20)}...[MASKED]';
-          }
-          return '${entry.key}: $value';
-        })
-        .join(', ');
-
-    return '{$formatted}';
-  }
-
-  /// Format JSON for readable logging
-  String _formatJsonForLog(dynamic json) {
-    try {
-      return const JsonEncoder.withIndent('  ').convert(json);
-    } catch (e) {
-      return json.toString();
-    }
-  }
-
-  /// Format stack trace for readable logging
-  String _formatStackTrace(StackTrace stackTrace) {
-    final lines = stackTrace.toString().split('\n');
-    // Show only first 10 lines to keep logs readable
-    final relevantLines = lines.take(10).join('\n');
-    if (lines.length > 10) {
-      return '$relevantLines\n... (${lines.length - 10} more lines)';
-    }
-    return relevantLines;
-  }
-
-  /// Send OTP - Dynamic method for both email and phone
+  /// Send OTP
   Future<ApiResponse<Map<String, dynamic>>> sendOtp({
-    String? email,
-    String? phone,
-    String purpose = 'login',
+    required String phone,
   }) async {
     try {
-      final Map<String, dynamic> body = {'purpose': purpose};
-
-      if (email != null) {
-        body['email'] = email;
-      } else if (phone != null) {
-        body['phone'] = phone;
-      } else {
-        return ApiResponse.error('Either email or phone must be provided');
-      }
-
       final response = await _makeRequest<Map<String, dynamic>>(
         'POST',
         '/auth/otp/send',
-        body: body,
+        body: {'phone': phone},
         requiresAuth: false,
       );
 
@@ -351,25 +193,14 @@ class AuthService {
 
   /// Verify OTP
   Future<ApiResponse<Map<String, dynamic>>> verifyOtp({
-    String? phone,
-    String? email,
+    required String phone,
     required String otp,
   }) async {
     try {
-      final Map<String, dynamic> body = {'otp': otp};
-
-      if (phone != null) {
-        body['phone'] = phone;
-      } else if (email != null) {
-        body['email'] = email;
-      } else {
-        return ApiResponse.error('Either phone or email must be provided');
-      }
-
       final response = await _makeRequest<Map<String, dynamic>>(
         'POST',
         '/auth/otp/verify',
-        body: body,
+        body: {'phone': phone, 'otp': otp},
         requiresAuth: false,
       );
 
@@ -395,7 +226,7 @@ class AuthService {
     required int offset,
   }) async {
     try {
-      debugPrint('� Fetching testimonials: limit=$limit, offset=$offset');
+      debugPrint('📝 Fetching testimonials: limit=$limit, offset=$offset');
 
       // Build URL with query parameters
       final endpoint = '/testimonials?limit=$limit&offset=$offset';
@@ -426,7 +257,7 @@ class AuthService {
     RegisterRequest request,
   ) async {
     try {
-      debugPrint('� Starting registration for user: ${request.fullName}');
+      debugPrint('🚀 Starting registration for user: ${request.fullName}');
 
       final response = await _makeRequest<Map<String, dynamic>>(
         'POST',

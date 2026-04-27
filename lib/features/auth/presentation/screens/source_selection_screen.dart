@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'birth_year_picker_screen.dart';
+import '../models/onboarding_data.dart';
 
 /// ---------------- CONSTANTS ----------------
 class AppColors {
@@ -34,7 +35,9 @@ class SurveyService {
 
 /// ---------------- SCREEN ----------------
 class SourceSelectionScreen extends StatefulWidget {
-  const SourceSelectionScreen({super.key});
+  final Map<String, dynamic> onboardingData;
+
+  const SourceSelectionScreen({super.key, required this.onboardingData});
 
   @override
   State<SourceSelectionScreen> createState() => _SourceSelectionScreenState();
@@ -52,9 +55,16 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen> {
   void _onOptionSelected(String option) {
     debugPrint("Tapped option: $option");
 
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (context) => BirthYearPickerScreen()));
+    // Update onboarding data with source selection
+    final updatedData = Map<String, dynamic>.from(widget.onboardingData);
+    updatedData['source'] = option;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) =>
+            BirthYearPickerScreen(onboardingData: updatedData),
+      ),
+    );
   }
 
   @override

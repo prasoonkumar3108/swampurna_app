@@ -5,66 +5,36 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Colors matching your screenshot exactly
+    // Exact colors from the attachment
     const Color navyBlue = Color(0xFF1E1E5F);
-    const Color cardBackground = Color(
-      0xFFD1F0EF,
-    ); // Light teal/blue from image
     const Color scaffoldBg = Color(0xFFC5EBEA);
+    const Color cardBg = Color(0xFFB9E5E4); // Soft teal card color
 
-    // Simulated API Data Structure
-    final List<Map<String, dynamic>> settingsData = [
+    // This list simulates API data
+    final List<Map<String, dynamic>> menuGroups = [
       {
-        "category": "Account",
+        "title": "Account",
         "items": [
-          {
-            "icon": Icons.person_outline,
-            "label": "Edit profile",
-            "action": "edit",
-          },
-          {
-            "icon": Icons.notifications_none,
-            "label": "Notifications",
-            "action": "notify",
-          },
-          {"icon": Icons.lock_outline, "label": "Privacy", "action": "privacy"},
-        ],
+          {"icon": Icons.person_outline, "text": "Edit profile", "id": "edit"},
+          {"icon": Icons.notifications_none, "text": "Notifications", "id": "notify"},
+          {"icon": Icons.lock_outline, "text": "Privacy", "id": "privacy"},
+        ]
       },
       {
-        "category": "Support & About",
+        "title": "Support & About",
         "items": [
-          {
-            "icon": Icons.help_outline,
-            "label": "Help & Support",
-            "action": "help",
-          },
-          {
-            "icon": Icons.info_outline,
-            "label": "Find Nearby Medical Stores",
-            "action": "stores",
-          },
-          {
-            "icon": Icons.info_outline,
-            "label": "Terms and Policies",
-            "action": "terms",
-          },
-        ],
+          {"icon": Icons.help_outline, "text": "Help & Support", "id": "help"},
+          {"icon": Icons.info_outline, "text": "Find Nearby Medical Stores", "id": "stores"},
+          {"icon": Icons.info_outline, "text": "Terms and Policies", "id": "terms"},
+        ]
       },
       {
-        "category": "Actions",
+        "title": "Actions",
         "items": [
-          {
-            "icon": Icons.outlined_flag,
-            "label": "Report a problem",
-            "action": "report",
-          },
-          {"icon": Icons.logout, "label": "Log out", "action": "logout"},
-          {
-            "icon": Icons.delete_outline,
-            "label": "Delete Account",
-            "action": "delete",
-          },
-        ],
+          {"icon": Icons.outlined_flag, "text": "Report a problem", "id": "report"},
+          {"icon": Icons.logout, "text": "Log out", "id": "logout"},
+          {"icon": Icons.delete_outline, "text": "Delete Account", "id": "delete"},
+        ]
       },
     ];
 
@@ -72,7 +42,7 @@ class SettingsScreen extends StatelessWidget {
       backgroundColor: scaffoldBg,
       body: Stack(
         children: [
-          // Main Scrollable Content
+          // Main Scrollable List
           ListView(
             padding: const EdgeInsets.fromLTRB(20, 60, 20, 100),
             children: [
@@ -82,42 +52,26 @@ class SettingsScreen extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black, // Dark text like screenshot
+                    color: Colors.black,
                   ),
                 ),
               ),
               const SizedBox(height: 30),
-              ...settingsData
-                  .map((group) => _buildGroup(group, navyBlue, cardBackground))
-                  .toList(),
+              ...menuGroups.map((group) => _buildGroup(group, navyBlue, cardBg)).toList(),
             ],
           ),
 
-          // Floating Action Buttons (Bottom Right Stack)
+          // Right-side Action Stack (Ditto like attachment)
           Positioned(
             bottom: 20,
             right: 20,
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                _circularActionBtn(
-                  Icons.phone_outlined,
-                  Colors.white,
-                  navyBlue,
-                ),
-                const SizedBox(height: 15),
-                _circularActionBtn(
-                  Icons.chat_bubble_outline,
-                  Colors.white,
-                  navyBlue,
-                ),
-                const SizedBox(height: 15),
-                _circularActionBtn(
-                  Icons.close,
-                  navyBlue,
-                  Colors.white,
-                  isLarge: true,
-                ),
+                _circularButton(Icons.phone_outlined, Colors.white, navyBlue),
+                const SizedBox(height: 12),
+                _circularButton(Icons.chat_bubble_outline, Colors.white, navyBlue),
+                const SizedBox(height: 12),
+                _circularButton(Icons.close, navyBlue, Colors.white, isLarge: true),
               ],
             ),
           ),
@@ -126,18 +80,14 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildGroup(
-    Map<String, dynamic> group,
-    Color textColor,
-    Color cardColor,
-  ) {
+  Widget _buildGroup(Map<String, dynamic> group, Color textColor, Color cardColor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 5, bottom: 8),
+          padding: const EdgeInsets.only(left: 8, bottom: 8),
           child: Text(
-            group["category"],
+            group["title"],
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 16,
@@ -146,21 +96,14 @@ class SettingsScreen extends StatelessWidget {
           ),
         ),
         Container(
-          margin: const EdgeInsets.bottom(25),
+          margin: const EdgeInsets.only(bottom: 25),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(
-              0.3,
-            ), // Glass effect from screenshot
+            color: Colors.white.withOpacity(0.3), // Glassy effect matching image
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
             children: (group["items"] as List).map((item) {
-              return _settingsItem(
-                item["icon"],
-                item["label"],
-                item["label"] == "Delete Account" ? Colors.red : textColor,
-                item["action"],
-              );
+              return _menuTile(item["icon"], item["text"], textColor, item["id"]);
             }).toList(),
           ),
         ),
@@ -168,50 +111,37 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _settingsItem(
-    IconData icon,
-    String title,
-    Color color,
-    String action,
-  ) {
+  Widget _menuTile(IconData icon, String text, Color color, String actionId) {
     return ListTile(
       onTap: () {
-        print("Executing action: $action"); // API Action placeholder
+        // Trigger API Action based on actionId
+        debugPrint("Action: $actionId triggered");
       },
-      leading: Icon(icon, color: color, size: 28),
+      leading: Icon(icon, color: color, size: 26),
       title: Text(
-        title,
+        text,
         style: TextStyle(
           color: color,
-          fontSize: 18,
+          fontSize: 17,
           fontWeight: FontWeight.w600,
         ),
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
     );
   }
 
-  Widget _circularActionBtn(
-    IconData icon,
-    Color bgColor,
-    Color iconColor, {
-    bool isLarge = false,
-  }) {
+  Widget _circularButton(IconData icon, Color bg, Color iconColor, {bool isLarge = false}) {
     return Container(
-      height: isLarge ? 65 : 55,
-      width: isLarge ? 65 : 55,
+      width: isLarge ? 60 : 50,
+      height: isLarge ? 60 : 50,
       decoration: BoxDecoration(
-        color: bgColor,
+        color: bg,
         shape: BoxShape.circle,
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 4)),
         ],
       ),
-      child: Icon(icon, color: iconColor, size: isLarge ? 35 : 25),
+      child: Icon(icon, color: iconColor, size: isLarge ? 30 : 22),
     );
   }
 }
