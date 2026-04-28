@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'onboarding_screen.dart'; // Aapki next screen
 import 'splash_screen2.dart';
+import '../../../../core/services/auth_service.dart';
+import '../../../auth/presentation/screens/tracker_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -45,13 +47,27 @@ class _SplashScreenState extends State<SplashScreen>
     });
   }
 
-  void _navigateToNext() {
+  void _navigateToNext() async {
     if (mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => const SplashScreen2(),
-        ), // Change to your next screen
-      );
+      // Check for persistent login session
+      final authService = AuthService();
+      final isLoggedIn = await authService.isLoggedIn();
+
+      debugPrint('🔍 Splash Screen: Login session check - $isLoggedIn');
+
+      if (isLoggedIn) {
+        // User has valid login session, navigate to Dashboard (TrackerScreen)
+        debugPrint('✅ User already logged in, navigating to TrackerScreen');
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const TrackerScreen()),
+        );
+      } else {
+        // No valid session, continue to normal flow
+        debugPrint('ℹ️ No valid login session, continuing to onboarding');
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const SplashScreen2()),
+        );
+      }
     }
   }
 

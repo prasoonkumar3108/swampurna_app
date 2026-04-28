@@ -3,9 +3,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Service for managing authentication token storage
 class TokenStorageService {
   static const String _tokenKey = 'auth_token';
+  static const String _loginFlagKey = 'is_logged_in_flag';
   static TokenStorageService? _instance;
-  static TokenStorageService get instance => _instance ??= TokenStorageService._();
-  
+  static TokenStorageService get instance =>
+      _instance ??= TokenStorageService._();
+
   TokenStorageService._();
 
   /// Save authentication token
@@ -51,6 +53,61 @@ class TokenStorageService {
     } catch (e) {
       print('❌ Error checking token: $e');
       return false;
+    }
+  }
+
+  /// Save login session flag (for persistent login)
+  Future<void> saveLoginSession(bool isLoggedIn) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_loginFlagKey, isLoggedIn);
+      print('✅ Login session flag saved: $isLoggedIn');
+    } catch (e) {
+      print('❌ Error saving login session: $e');
+    }
+  }
+
+  /// Get login session flag
+  Future<bool> isLoggedIn() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final isLoggedIn = prefs.getBool(_loginFlagKey) ?? false;
+      print('🔍 Login session status: $isLoggedIn');
+      return isLoggedIn;
+    } catch (e) {
+      print('❌ Error checking login session: $e');
+      return false;
+    }
+  }
+
+  /// Check if user has valid login session (token + flag)
+  Future<bool> hasValidLoginSession() async {
+    try {
+      final token = await getToken();
+      final isUserLoggedInFlag = await isLoggedIn();
+
+      bool hasValidSession =
+          (token != null && token.isNotEmpty) && isUserLoggedInFlag;
+      print('🔍 Valid login session check: $hasValidSession');
+      print('   - Token exists: ${token != null}');
+      print('   - Login flag: $isUserLoggedInFlag');
+
+      return hasValidSession;
+    } catch (e) {
+      print('❌ Error checking valid login session: $e');
+      return false;
+    }
+  }
+
+  /// Complete logout (clear both token and login flag)
+  Future<void> logout() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_tokenKey);
+      await prefs.remove(_loginFlagKey);
+      print('🗑️ Complete logout successful - Token and login flag cleared');
+    } catch (e) {
+      print('❌ Error during logout: $e');
     }
   }
 

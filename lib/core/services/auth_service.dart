@@ -62,7 +62,10 @@ class AuthService {
       // Save token if found
       if (token != null && token.isNotEmpty) {
         await TokenStorageService.instance.saveToken(token);
-        debugPrint('✅ Authentication token detected and saved');
+        await TokenStorageService.instance.saveLoginSession(
+          true,
+        ); // Save login session flag
+        debugPrint('✅ Authentication token and login session saved');
       } else {
         debugPrint('ℹ️ No authentication token found in response');
       }
@@ -482,5 +485,20 @@ class AuthService {
       }
       return ApiResponse.error('OTP verification failed: ${e.toString()}');
     }
+  }
+
+  /// Logout user and clear session
+  Future<void> logout() async {
+    try {
+      await TokenStorageService.instance.logout();
+      debugPrint('✅ User logged out successfully');
+    } catch (e) {
+      debugPrint('❌ Error during logout: $e');
+    }
+  }
+
+  /// Check if user is logged in
+  Future<bool> isLoggedIn() async {
+    return await TokenStorageService.instance.hasValidLoginSession();
   }
 }
