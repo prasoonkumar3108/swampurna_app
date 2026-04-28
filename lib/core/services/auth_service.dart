@@ -504,4 +504,132 @@ class AuthService {
   Future<bool> isLoggedIn() async {
     return await TokenStorageService.instance.hasValidLoginSession();
   }
+
+  /// Login with PIN
+  Future<ApiResponse<Map<String, dynamic>>> loginWithPIN({
+    required String email,
+    required String pin,
+  }) async {
+    try {
+      final Map<String, dynamic> body = {'email': email, 'pin': pin};
+
+      final response = await _makeRequest<Map<String, dynamic>>(
+        'POST',
+        '/auth/login/pin',
+        body: body,
+        requiresAuth: false,
+      );
+
+      if (response.success && response.data != null) {
+        debugPrint('✅ PIN login successful');
+
+        // Detect and save token from response
+        await _detectAndSaveToken(response.data!);
+      }
+
+      return response;
+    } catch (e) {
+      debugPrint('❌ PIN login error: $e');
+      if (e is ApiException) {
+        return ApiResponse.error(e.message, statusCode: e.statusCode);
+      }
+      return ApiResponse.error('PIN login failed: ${e.toString()}');
+    }
+  }
+
+  /// Set PIN
+  Future<ApiResponse<Map<String, dynamic>>> setPIN({
+    required String pin,
+  }) async {
+    try {
+      // Check if user is authenticated first
+      final token = await TokenStorageService.instance.getToken();
+      if (token == null || token.isEmpty) {
+        debugPrint('❌ No authentication token found for setPIN');
+        return ApiResponse.error(
+          'Authentication required. Please login first.',
+        );
+      }
+
+      debugPrint('🔐 Setting PIN with authenticated request');
+
+      final Map<String, dynamic> body = {'pin': pin};
+
+      final response = await _makeRequest<Map<String, dynamic>>(
+        'POST',
+        '/auth/pin/set',
+        body: body,
+        requiresAuth: true, // Requires authentication
+      );
+
+      if (response.success) {
+        debugPrint('✅ PIN set successful');
+      }
+
+      return response;
+    } catch (e) {
+      debugPrint('❌ Set PIN error: $e');
+      if (e is ApiException) {
+        // Check for authentication errors
+        if (e.statusCode == 401 ||
+            e.message.toLowerCase().contains('not authenticated')) {
+          debugPrint('🚫 Authentication failed for setPIN');
+          return ApiResponse.error(
+            'Session expired. Please login again.',
+            statusCode: 401,
+          );
+        }
+        return ApiResponse.error(e.message, statusCode: e.statusCode);
+      }
+      return ApiResponse.error('Failed to set PIN: ${e.toString()}');
+    }
+  }
+
+  /// Verify PIN
+  Future<ApiResponse<Map<String, dynamic>>> verifyPIN({
+    required String pin,
+  }) async {
+    try {
+      // Check if user is authenticated first
+      final token = await TokenStorageService.instance.getToken();
+      if (token == null || token.isEmpty) {
+        debugPrint('❌ No authentication token found for verifyPIN');
+        return ApiResponse.error(
+          'Authentication required. Please login first.',
+        );
+      }
+
+      debugPrint('🔐 Verifying PIN with authenticated request');
+
+      final Map<String, dynamic> body = {'pin': pin};
+
+      final response = await _makeRequest<Map<String, dynamic>>(
+        'POST',
+        '/auth/pin/verify',
+        body: body,
+        requiresAuth: true, // Requires authentication
+      );
+
+      if (response.success) {
+        debugPrint('✅ PIN verification successful');
+      }
+
+      return response;
+    } catch (e) {
+      debugPrint('❌ Verify PIN error: $e');
+      if (e is ApiException) {
+        // Check for authentication errors
+        if (e.statusCode == 401 ||
+            e.message.toLowerCase().contains('not authenticated')) {
+          debugPrint('🚫 Authentication failed for verifyPIN');
+          return ApiResponse.error(
+            'Session expired. Please login again.',
+            statusCode: 401,
+          );
+        }
+        return ApiResponse.error(e.message, statusCode: e.statusCode);
+      }
+      return ApiResponse.error('PIN verification failed: ${e.toString()}');
+    }
+  }
 }

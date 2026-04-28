@@ -1,10 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'signup_screen.dart';
-import 'source_selection_screen.dart';
-import 'confirmation_screen.dart';
-import '../models/onboarding_data.dart';
+import 'login_with_pin_screen.dart';
 import '../../../../core/services/auth_service.dart';
 
 class OtpScreen extends StatefulWidget {
@@ -106,6 +103,14 @@ class _OtpScreenState extends State<OtpScreen> {
         if (response.success) {
           debugPrint('✅ OTP verification successful');
 
+          // Extract token and email from response
+          final responseData = response.data;
+          final token = responseData?['token'] ?? responseData?['access_token'];
+          final email = widget.email;
+
+          debugPrint('🔐 Token extracted: ${token != null ? "Yes" : "No"}');
+          debugPrint('📧 Email: $email');
+
           // Show success message
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -115,11 +120,17 @@ class _OtpScreenState extends State<OtpScreen> {
             ),
           );
 
-          // Navigate through multi-step onboarding flow
-          _navigateToOnboardingFlow();
+          // Navigate to LoginWithPinScreen
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => LoginWithPinScreen(email: email, token: token),
+            ),
+          );
         } else {
           setState(() {
             _errorMessage = response.error ?? 'Invalid OTP. Please try again.';
+            _isLoading = false;
           });
         }
       }
@@ -173,22 +184,6 @@ class _OtpScreenState extends State<OtpScreen> {
         });
       }
     }
-  }
-
-  void _navigateToOnboardingFlow() {
-    // Initialize onboarding data with email and OTP
-    final onboardingData = <String, dynamic>{
-      'email': widget.email,
-      'otp': _otpControllers.map((c) => c.text).join(),
-    };
-
-    // Navigate to ConfirmationScreen first
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ConfirmationScreen(onboardingData: onboardingData),
-      ),
-    );
   }
 
   void _onBack() => Navigator.pop(context);

@@ -239,7 +239,7 @@ class _MobileInputScreenState extends State<MobileInputScreen> {
                         Image.asset(
                           _isEmailMode
                               ? 'assets/images/mail.png'
-                              : 'assets/images/phone.png',
+                              : 'assets/images/mail.png',
                           width: 22,
                           height: 22,
                           color: _primaryColor,
