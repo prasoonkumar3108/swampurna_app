@@ -105,8 +105,7 @@ class _SignupScreenState extends State<SignupScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) =>
-                  OtpScreen(phoneNumber: userEmail, type: OtpType.signup),
+              builder: (_) => OtpScreen(email: userEmail, isFromSignup: true),
             ),
           );
         } else {

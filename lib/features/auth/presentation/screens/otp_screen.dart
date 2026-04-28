@@ -7,13 +7,11 @@ import 'confirmation_screen.dart';
 import '../models/onboarding_data.dart';
 import '../../../../core/services/auth_service.dart';
 
-enum OtpType { signup, login }
-
 class OtpScreen extends StatefulWidget {
-  final String phoneNumber;
-  final OtpType type;
+  final String email;
+  final bool isFromSignup;
 
-  const OtpScreen({super.key, required this.phoneNumber, required this.type});
+  const OtpScreen({super.key, required this.email, required this.isFromSignup});
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
@@ -88,17 +86,17 @@ class _OtpScreenState extends State<OtpScreen> {
 
     try {
       debugPrint(
-        '🔐 Verifying OTP for: ${widget.phoneNumber} (${widget.type})',
+        '🔐 Verifying OTP for: ${widget.email} (${widget.isFromSignup ? 'Signup' : 'Login'})',
       );
 
-      // Dynamic API endpoint based on OtpType
+      // Dynamic API endpoint based on isFromSignup
       final authService = AuthService();
-      final response = widget.type == OtpType.signup
+      final response = widget.isFromSignup
           ? await authService.verifyRegistrationOtp(
-              email: widget.phoneNumber,
+              email: widget.email,
               otp: otp,
             )
-          : await authService.verifyOtp(email: widget.phoneNumber, otp: otp);
+          : await authService.verifyOtp(email: widget.email, otp: otp);
 
       if (mounted) {
         setState(() {
@@ -143,11 +141,13 @@ class _OtpScreenState extends State<OtpScreen> {
     });
 
     try {
-      debugPrint('Resending OTP to: ${widget.phoneNumber}');
+      debugPrint('Resending OTP to: ${widget.email}');
 
-      // Call send-otp API again
+      // Call send-otp API again with conditional logic
       final authService = AuthService();
-      final response = await authService.sendOtp(phone: widget.phoneNumber);
+      final response = widget.isFromSignup
+          ? await authService.sendOtp(email: widget.email, purpose: 'signup')
+          : await authService.sendOtp(email: widget.email, purpose: 'login');
 
       if (mounted) {
         setState(() {
@@ -178,7 +178,7 @@ class _OtpScreenState extends State<OtpScreen> {
   void _navigateToOnboardingFlow() {
     // Initialize onboarding data with email and OTP
     final onboardingData = <String, dynamic>{
-      'email': widget.phoneNumber,
+      'email': widget.email,
       'otp': _otpControllers.map((c) => c.text).join(),
     };
 
@@ -262,16 +262,16 @@ class _OtpScreenState extends State<OtpScreen> {
                         // Subtitle - Text from your attachment/screenshot
                         RichText(
                           textAlign: TextAlign.center,
-                          text: const TextSpan(
-                            style: TextStyle(
+                          text: TextSpan(
+                            style: const TextStyle(
                               fontSize: 14,
                               color: Colors.black54,
                             ),
                             children: [
-                              TextSpan(text: 'Enter the OTP sent to - '),
+                              const TextSpan(text: 'Enter the OTP sent to - '),
                               TextSpan(
-                                text: '+91-8976500001',
-                                style: TextStyle(
+                                text: widget.email,
+                                style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.black,
                                 ),

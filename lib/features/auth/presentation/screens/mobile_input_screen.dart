@@ -93,10 +93,7 @@ class _MobileInputScreenState extends State<MobileInputScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => OtpScreen(
-                  phoneNumber: value,
-                  type: OtpType.login,
-                ), // Reuse phoneNumber field for email
+                builder: (_) => OtpScreen(email: value, isFromSignup: false),
               ),
             );
           } else {
@@ -132,8 +129,11 @@ class _MobileInputScreenState extends State<MobileInputScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) =>
-                    OtpScreen(phoneNumber: formattedPhone, type: OtpType.login),
+                builder: (_) => OtpScreen(
+                  email:
+                      formattedPhone, // Use phone as email for OTP verification
+                  isFromSignup: false,
+                ),
               ),
             );
           } else {
