@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'login_with_pin_screen.dart';
+import 'mobile_input_screen.dart';
 import '../../../../core/services/auth_service.dart';
+import '../../../../core/services/token_storage_service.dart';
 
 class OtpScreen extends StatefulWidget {
   final String email;
@@ -103,13 +105,16 @@ class _OtpScreenState extends State<OtpScreen> {
         if (response.success) {
           debugPrint('✅ OTP verification successful');
 
-          // Extract token and email from response
+          // Extract token from response and save it
           final responseData = response.data;
           final token = responseData?['token'] ?? responseData?['access_token'];
-          final email = widget.email;
 
-          debugPrint('🔐 Token extracted: ${token != null ? "Yes" : "No"}');
-          debugPrint('📧 Email: $email');
+          if (token != null && token.isNotEmpty) {
+            TokenStorageService.instance.saveToken(token);
+            debugPrint('� Token saved successfully');
+          }
+
+          debugPrint('📧 Email: ${widget.email}');
 
           // Show success message
           ScaffoldMessenger.of(context).showSnackBar(
@@ -120,12 +125,11 @@ class _OtpScreenState extends State<OtpScreen> {
             ),
           );
 
-          // Navigate to LoginWithPinScreen
-          Navigator.pushReplacement(
+          // Navigate back to mobile_input_screen
+          Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(
-              builder: (_) => LoginWithPinScreen(email: email, token: token),
-            ),
+            MaterialPageRoute(builder: (_) => const MobileInputScreen()),
+            (route) => false,
           );
         } else {
           setState(() {

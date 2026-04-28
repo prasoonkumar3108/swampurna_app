@@ -4,17 +4,13 @@ import 'package:flutter/services.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../core/services/token_storage_service.dart';
 import 'set_pin_screen.dart';
-import '../../../auth/presentation/screens/tracker_screen.dart';
+import 'confirmation_screen.dart';
 
 class LoginWithPinScreen extends StatefulWidget {
   final String email;
   final String? token;
 
-  const LoginWithPinScreen({
-    super.key,
-    required this.email,
-    this.token,
-  });
+  const LoginWithPinScreen({super.key, required this.email, this.token});
 
   @override
   State<LoginWithPinScreen> createState() => _LoginWithPinScreenState();
@@ -26,7 +22,10 @@ class _LoginWithPinScreenState extends State<LoginWithPinScreen> {
     4,
     (index) => TextEditingController(),
   );
-  final List<FocusNode> _pinFocusNodes = List.generate(4, (index) => FocusNode());
+  final List<FocusNode> _pinFocusNodes = List.generate(
+    4,
+    (index) => FocusNode(),
+  );
 
   // UI State
   bool _isLoading = false;
@@ -41,7 +40,7 @@ class _LoginWithPinScreenState extends State<LoginWithPinScreen> {
   void initState() {
     super.initState();
     debugPrint('🔐 LoginWithPinScreen initialized for email: ${widget.email}');
-    
+
     // Save token if provided
     if (widget.token != null && widget.token!.isNotEmpty) {
       TokenStorageService.instance.saveToken(widget.token!);
@@ -110,11 +109,18 @@ class _LoginWithPinScreenState extends State<LoginWithPinScreen> {
 
         if (response.success) {
           debugPrint('✅ PIN login successful');
-          
-          // Navigate to Home/Tracker Screen
+
+          // Initialize onboarding data
+          final onboardingData = <String, dynamic>{
+            'email': widget.email,
+            'login_method': 'pin',
+          };
+
+          // Navigate to ConfirmationScreen
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
-              builder: (_) => const TrackerScreen(),
+              builder: (_) =>
+                  ConfirmationScreen(onboardingData: onboardingData),
             ),
             (route) => false,
           );
@@ -139,19 +145,23 @@ class _LoginWithPinScreenState extends State<LoginWithPinScreen> {
   void _navigateToSetPin() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => const SetPinScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => const SetPinScreen()),
     );
   }
 
-  // Skip PIN flow and go to Home
+  // Skip PIN flow and go to ConfirmationScreen
   void _skipToHome() {
-    debugPrint('⏭️ Skipping PIN flow, going to Home');
-    
+    debugPrint('⏭️ Skipping PIN flow, going to ConfirmationScreen');
+
+    // Initialize onboarding data
+    final onboardingData = <String, dynamic>{
+      'email': widget.email,
+      'login_method': 'skip',
+    };
+
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
-        builder: (_) => const TrackerScreen(),
+        builder: (_) => ConfirmationScreen(onboardingData: onboardingData),
       ),
       (route) => false,
     );
@@ -199,11 +209,7 @@ class _LoginWithPinScreenState extends State<LoginWithPinScreen> {
                   color: _primaryDark,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Icon(
-                  Icons.lock,
-                  color: Colors.white,
-                  size: 40,
-                ),
+                child: const Icon(Icons.lock, color: Colors.white, size: 40),
               ),
 
               const SizedBox(height: 30),
@@ -224,10 +230,7 @@ class _LoginWithPinScreenState extends State<LoginWithPinScreen> {
               RichText(
                 textAlign: TextAlign.center,
                 text: TextSpan(
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.black54,
-                  ),
+                  style: const TextStyle(fontSize: 14, color: Colors.black54),
                   children: [
                     const TextSpan(text: 'Email: '),
                     TextSpan(
@@ -271,7 +274,10 @@ class _LoginWithPinScreenState extends State<LoginWithPinScreen> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: _primaryDark, width: 2),
+                          borderSide: const BorderSide(
+                            color: _primaryDark,
+                            width: 2,
+                          ),
                         ),
                         filled: true,
                         fillColor: _accentWhite,
@@ -325,7 +331,9 @@ class _LoginWithPinScreenState extends State<LoginWithPinScreen> {
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         )
                       : const Text(
                           'Login',
@@ -335,7 +343,7 @@ class _LoginWithPinScreenState extends State<LoginWithPinScreen> {
                             color: Colors.white,
                           ),
                         ),
-              ),
+                ),
               ),
 
               const SizedBox(height: 15),

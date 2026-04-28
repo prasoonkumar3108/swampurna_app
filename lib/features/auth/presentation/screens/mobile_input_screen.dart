@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'otp_screen.dart';
 import 'signup_screen.dart';
+import 'login_with_pin_screen.dart';
 import '../../../../core/services/auth_service.dart';
 
 class MobileInputScreen extends StatefulWidget {
@@ -20,7 +21,7 @@ class _MobileInputScreenState extends State<MobileInputScreen> {
 
   bool _isLoading = false;
   String? _errorMessage;
-  bool _isEmailMode = false;
+  bool _isEmailMode = true; // Default to email mode
 
   // Toggle between phone and email mode
   void _toggleInputMode() {
@@ -29,6 +30,30 @@ class _MobileInputScreenState extends State<MobileInputScreen> {
       _mobileController.clear();
       _errorMessage = null;
     });
+  }
+
+  // Navigate to PIN Login Screen
+  void _navigateToPinLogin() {
+    String email = _isEmailMode ? _mobileController.text.trim() : '';
+
+    if (email.isEmpty) {
+      setState(() {
+        _errorMessage = 'Please enter your email address first';
+      });
+      return;
+    }
+
+    if (!email.contains('@') || !email.contains('.')) {
+      setState(() {
+        _errorMessage = 'Please enter a valid email address';
+      });
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => LoginWithPinScreen(email: email)),
+    );
   }
 
   // Validation Logic with API call
@@ -288,6 +313,24 @@ class _MobileInputScreenState extends State<MobileInputScreen> {
                   child: Text(
                     _isEmailMode ? 'Use Mobile Number' : 'Use Email-ID',
                     style: const TextStyle(
+                      color: _primaryColor,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // 5. Login with PIN Button
+              Align(
+                alignment: Alignment.centerRight,
+                child: InkWell(
+                  onTap: _navigateToPinLogin,
+                  child: const Text(
+                    'Login with PIN',
+                    style: TextStyle(
                       color: _primaryColor,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
