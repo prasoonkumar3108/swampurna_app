@@ -359,7 +359,10 @@ class AuthService {
     required String otp,
   }) async {
     try {
-      final Map<String, dynamic> body = {'otp': otp};
+      final Map<String, dynamic> body = {
+        'otp': otp,
+        'purpose': 'login', // Required field for login flow
+      };
 
       if (phone != null) {
         body['phone'] = phone;

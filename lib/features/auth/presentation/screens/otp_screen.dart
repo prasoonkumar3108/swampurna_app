@@ -7,10 +7,13 @@ import 'confirmation_screen.dart';
 import '../models/onboarding_data.dart';
 import '../../../../core/services/auth_service.dart';
 
+enum OtpType { signup, login }
+
 class OtpScreen extends StatefulWidget {
   final String phoneNumber;
+  final OtpType type;
 
-  const OtpScreen({super.key, required this.phoneNumber});
+  const OtpScreen({super.key, required this.phoneNumber, required this.type});
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
@@ -84,18 +87,18 @@ class _OtpScreenState extends State<OtpScreen> {
     });
 
     try {
-      debugPrint('🔐 Verifying OTP for: ${widget.phoneNumber}');
+      debugPrint(
+        '🔐 Verifying OTP for: ${widget.phoneNumber} (${widget.type})',
+      );
 
-      // Check if this is email (registration) or phone (login) flow
-      final bool isEmailFlow = widget.phoneNumber.contains('@');
-
+      // Dynamic API endpoint based on OtpType
       final authService = AuthService();
-      final response = isEmailFlow
+      final response = widget.type == OtpType.signup
           ? await authService.verifyRegistrationOtp(
               email: widget.phoneNumber,
               otp: otp,
             )
-          : await authService.verifyOtp(phone: widget.phoneNumber, otp: otp);
+          : await authService.verifyOtp(email: widget.phoneNumber, otp: otp);
 
       if (mounted) {
         setState(() {
