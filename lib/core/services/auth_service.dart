@@ -632,4 +632,28 @@ class AuthService {
       return ApiResponse.error('PIN verification failed: ${e.toString()}');
     }
   }
+
+  /// Fetch Period Tracker Setup data
+  Future<ApiResponse<Map<String, dynamic>>> fetchPeriodTrackerSetup() async {
+    try {
+      debugPrint('🔄 Fetching period tracker setup data');
+
+      final response = await _makeRequest<Map<String, dynamic>>(
+        'GET',
+        '/period-tracker/setup',
+        requiresAuth: true, // Requires Bearer token
+      );
+
+      debugPrint('✅ Period tracker setup data fetched successfully');
+      return response;
+    } catch (e) {
+      debugPrint('❌ Period tracker setup fetch error: $e');
+      if (e is ApiException) {
+        return ApiResponse.error(e.message, statusCode: e.statusCode);
+      }
+      return ApiResponse.error(
+        'Failed to fetch period tracker setup: ${e.toString()}',
+      );
+    }
+  }
 }

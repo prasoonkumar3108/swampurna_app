@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/services/auth_service.dart';
 
 // Keep these only if the files exist, otherwise the consolidated classes below take over
 import 'customize_period_screen.dart';
@@ -36,10 +37,108 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
   late TrackerData apiData;
 
+  // API Integration States
+  bool _isLoading = true;
+  bool _hasError = false;
+  String _errorMessage = '';
+
+  // Period Tracker Setup Data
+  int _cycleLengthDays = 28; // Default
+  int _periodLengthDays = 5; // Default
+  int _ovulationStartDay = 14; // Default
+
   @override
   void initState() {
     super.initState();
-    apiData = TrackerData(
+    _fetchPeriodTrackerSetup();
+  }
+
+  // Fetch Period Tracker Setup from API
+  Future<void> _fetchPeriodTrackerSetup() async {
+    try {
+      debugPrint('🔄 Fetching period tracker setup from API...');
+
+      final authService = AuthService();
+      final response = await authService.fetchPeriodTrackerSetup();
+
+      if (mounted) {
+        if (response.success && response.data != null) {
+          final data = response.data!;
+          final setupData = data['data'] ?? data; // Handle nested data
+
+          setState(() {
+            // Extract values from API response with fallbacks
+            _cycleLengthDays =
+                _extractIntValue(setupData, 'cycle_length_days') ?? 28;
+            _periodLengthDays =
+                _extractIntValue(setupData, 'period_length_days') ?? 5;
+            _ovulationStartDay =
+                _extractIntValue(setupData, 'ovulation_start_day') ?? 14;
+
+            debugPrint(
+              '📊 API Data - Cycle: $_cycleLengthDays, Period: $_periodLengthDays, Ovulation: $_ovulationStartDay',
+            );
+
+            // Generate calendar data based on API values
+            apiData = _generateCalendarDataFromAPI();
+            _isLoading = false;
+            _hasError = false;
+          });
+        } else {
+          throw Exception(
+            response.error ?? 'Failed to load period tracker setup',
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _hasError = true;
+          _errorMessage = 'Failed to load period data. Using default values.';
+          apiData = _generateDefaultCalendarData(); // Fallback to default
+        });
+        debugPrint('❌ Error fetching period tracker setup: $e');
+      }
+    }
+  }
+
+  // Helper method to safely extract integer values
+  int? _extractIntValue(Map<String, dynamic> data, String key) {
+    final value = data[key];
+    if (value is int) return value;
+    if (value is double) return value.round();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+
+  // Generate calendar data based on API values
+  TrackerData _generateCalendarDataFromAPI() {
+    final List<CalendarDay> days = [];
+
+    // Generate cycle based on API data
+    for (int day = 1; day <= _cycleLengthDays; day++) {
+      String type = 'none';
+
+      if (day <= _periodLengthDays) {
+        type = 'period'; // Period days
+      } else if (day <= _periodLengthDays + 2) {
+        type = 'post'; // Post-period (2 days)
+      } else if (day >= _ovulationStartDay && day < _ovulationStartDay + 5) {
+        type = 'ovulation'; // Ovulation phase (5 days)
+      } else if (day > _cycleLengthDays - 3) {
+        type = 'pre'; // Pre-period (3 days)
+      }
+
+      days.add(CalendarDay(day: day, type: type));
+    }
+
+    return TrackerData(monthTitle: "Your Cycle", days: days);
+  }
+
+  // Generate default calendar data (fallback)
+  TrackerData _generateDefaultCalendarData() {
+    return TrackerData(
       monthTitle: "FEBRUARY 2026",
       days: [
         ...List.generate(8, (i) => CalendarDay(day: i + 1, type: 'period')),
@@ -89,6 +188,49 @@ class _TrackerScreenState extends State<TrackerScreen> {
   // --- INDEX 0: MAIN TRACKER UI ---
   Widget _buildTrackerUI() {
     final double screenWidth = MediaQuery.of(context).size.width;
+
+    // Show loading indicator while fetching data
+    if (_isLoading) {
+      return SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          children: [
+            const SizedBox(height: 40),
+            _buildMainHeader(),
+            const SizedBox(height: 50),
+            Container(
+              height: 300,
+              child: const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(
+                      color: Color(0xFF1E1E5F),
+                      strokeWidth: 3,
+                    ),
+                    SizedBox(height: 20),
+                    Text(
+                      "Loading your cycle data...",
+                      style: TextStyle(
+                        color: Color(0xFF1E1E5F),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            _buildLegendSection(),
+            const SizedBox(height: 10),
+            _buildActionBtn("Edit period dates"),
+            _buildInsightsSection(),
+            const SizedBox(height: 100),
+          ],
+        ),
+      );
+    }
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Column(
@@ -96,11 +238,41 @@ class _TrackerScreenState extends State<TrackerScreen> {
           _buildTopWarningBar(),
           _buildMainHeader(),
           _buildCalendarCard(screenWidth),
+          if (_hasError) _buildErrorBanner(),
           _buildLegendSection(),
           const SizedBox(height: 10),
           _buildActionBtn("Edit period dates"),
           _buildInsightsSection(),
           const SizedBox(height: 100),
+        ],
+      ),
+    );
+  }
+
+  // Error banner for API failures
+  Widget _buildErrorBanner() {
+    return Container(
+      margin: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade100,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.orange.shade300),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.warning_amber, color: Colors.orange.shade700, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _errorMessage,
+              style: TextStyle(
+                color: Colors.orange.shade700,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
         ],
       ),
     );

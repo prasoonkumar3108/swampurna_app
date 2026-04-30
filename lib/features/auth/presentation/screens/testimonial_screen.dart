@@ -26,6 +26,9 @@ class _TestimonialScreenState extends State<TestimonialScreen> {
   final int _limit = 20;
   bool _hasMoreData = true;
 
+  // Star rating selection state
+  int _userRating = 0; // User's selected rating (0-5, 0 means no selection)
+
   // Scroll controller for infinite scroll
   late ScrollController _scrollController;
 
@@ -61,6 +64,10 @@ class _TestimonialScreenState extends State<TestimonialScreen> {
 
     try {
       final authService = AuthService();
+      debugPrint(
+        '🌐 Fetching testimonials from: https://swampurna-final-production.up.railway.app/api/v1/testimonials?limit=$_limit&offset=0',
+      );
+
       final response = await authService.fetchTestimonials(
         limit: _limit,
         offset: 0,
@@ -68,7 +75,27 @@ class _TestimonialScreenState extends State<TestimonialScreen> {
 
       if (response.success && response.data != null) {
         final data = response.data!;
-        final testimonials = data['testimonials'] as List<dynamic>? ?? [];
+        debugPrint('📊 API Response Data: $data');
+
+        // Fix: Extract testimonials from nested "data" key
+        List<dynamic> testimonials = [];
+
+        if (data.containsKey('data') && data['data'] is List) {
+          testimonials = data['data'] as List<dynamic>;
+          debugPrint(
+            '✅ Found testimonials in data["data"]: ${testimonials.length} items',
+          );
+        } else if (data.containsKey('testimonials') &&
+            data['testimonials'] is List) {
+          testimonials = data['testimonials'] as List<dynamic>;
+          debugPrint(
+            '✅ Found testimonials in data["testimonials"]: ${testimonials.length} items',
+          );
+        } else {
+          debugPrint(
+            '⚠️ No testimonials found in response. Available keys: ${data.keys}',
+          );
+        }
 
         setState(() {
           _testimonials = testimonials
@@ -77,6 +104,10 @@ class _TestimonialScreenState extends State<TestimonialScreen> {
           _isLoading = false;
           _currentPage = 0;
           _hasMoreData = testimonials.length == _limit;
+
+          debugPrint(
+            '📝 Updated state with ${_testimonials.length} testimonials',
+          );
         });
       } else {
         throw Exception(response.error ?? 'Failed to load testimonials');
@@ -108,7 +139,27 @@ class _TestimonialScreenState extends State<TestimonialScreen> {
 
       if (response.success && response.data != null) {
         final data = response.data!;
-        final newTestimonials = data['testimonials'] as List<dynamic>? ?? [];
+        debugPrint('📊 More testimonials API Response Data: $data');
+
+        // Fix: Extract testimonials from nested "data" key
+        List<dynamic> newTestimonials = [];
+
+        if (data.containsKey('data') && data['data'] is List) {
+          newTestimonials = data['data'] as List<dynamic>;
+          debugPrint(
+            '✅ Found more testimonials in data["data"]: ${newTestimonials.length} items',
+          );
+        } else if (data.containsKey('testimonials') &&
+            data['testimonials'] is List) {
+          newTestimonials = data['testimonials'] as List<dynamic>;
+          debugPrint(
+            '✅ Found more testimonials in data["testimonials"]: ${newTestimonials.length} items',
+          );
+        } else {
+          debugPrint(
+            '⚠️ No more testimonials found in response. Available keys: ${data.keys}',
+          );
+        }
 
         setState(() {
           _testimonials.addAll(
@@ -117,6 +168,10 @@ class _TestimonialScreenState extends State<TestimonialScreen> {
           _isLoadingMore = false;
           _currentPage = nextPage;
           _hasMoreData = newTestimonials.length == _limit;
+
+          debugPrint(
+            '📝 Added ${newTestimonials.length} more testimonials. Total: ${_testimonials.length}',
+          );
         });
       } else {
         throw Exception(response.error ?? 'Failed to load more testimonials');
@@ -135,14 +190,27 @@ class _TestimonialScreenState extends State<TestimonialScreen> {
     await _fetchTestimonials();
   }
 
-  Widget _buildRatingStars(int rating) {
+  // Handle star rating selection
+  void _onStarRatingChanged(int rating) {
+    setState(() {
+      _userRating = rating;
+    });
+    debugPrint('🌟 User selected rating: $rating');
+  }
+
+  Widget _buildRatingStars(int rating, {bool isInteractive = false}) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(5, (index) {
-        return Icon(
-          index < rating ? Icons.star : Icons.star_border,
-          color: Colors.amber,
-          size: 16,
+        return GestureDetector(
+          onTap: isInteractive ? () => _onStarRatingChanged(index + 1) : null,
+          child: Icon(
+            isInteractive
+                ? (index < _userRating ? Icons.star : Icons.star_border)
+                : (index < rating ? Icons.star : Icons.star_border),
+            color: Colors.amber,
+            size: isInteractive ? 24 : 16,
+          ),
         );
       }),
     );
@@ -205,6 +273,38 @@ class _TestimonialScreenState extends State<TestimonialScreen> {
                         ],
                       ),
                     )
+                  : _testimonials.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.rate_review_outlined,
+                            size: 64,
+                            color: Colors.grey[400],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No Testimonials Found',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Be the first to share your experience!',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[500],
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
                   : RefreshIndicator(
                       onRefresh: _refreshTestimonials,
                       child: ListView.builder(
@@ -260,18 +360,31 @@ class _TestimonialScreenState extends State<TestimonialScreen> {
     Map<String, dynamic> testimonial,
     bool isRight,
   ) {
-    // Extract data from testimonial with fallbacks
+    // Debug print the testimonial data structure
+    debugPrint('🔍 Processing testimonial: $testimonial');
+
+    // Extract data from testimonial with enhanced fallbacks
     final String name =
         testimonial['user_name']?.toString() ??
         testimonial['name']?.toString() ??
+        testimonial['author']?.toString() ??
+        testimonial['username']?.toString() ??
         'Anonymous';
+
     final String text =
         testimonial['comment']?.toString() ??
         testimonial['text']?.toString() ??
         testimonial['review']?.toString() ??
+        testimonial['quote']?.toString() ??
+        testimonial['message']?.toString() ??
+        testimonial['feedback']?.toString() ??
         'Great experience!';
-    final int rating =
-        (testimonial['rating'] ?? testimonial['stars'] ?? 5) as int;
+
+    final int rating = _extractRating(testimonial);
+
+    debugPrint(
+      '📝 Mapped testimonial - Name: "$name", Text: "$text", Rating: $rating',
+    );
 
     return Align(
       alignment: isRight ? Alignment.centerRight : Alignment.centerLeft,
@@ -314,6 +427,27 @@ class _TestimonialScreenState extends State<TestimonialScreen> {
     );
   }
 
+  // Helper method to extract rating with multiple fallback options
+  int _extractRating(Map<String, dynamic> testimonial) {
+    final dynamic ratingValue =
+        testimonial['rating'] ??
+        testimonial['stars'] ??
+        testimonial['score'] ??
+        testimonial['rating_value'] ??
+        5; // Default rating
+
+    if (ratingValue is int) {
+      return ratingValue.clamp(1, 5);
+    } else if (ratingValue is double) {
+      return ratingValue.round().clamp(1, 5);
+    } else if (ratingValue is String) {
+      final parsed = int.tryParse(ratingValue);
+      return parsed?.clamp(1, 5) ?? 5;
+    }
+
+    return 5; // Default fallback
+  }
+
   Widget _buildStarRating(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 20),
@@ -322,15 +456,8 @@ class _TestimonialScreenState extends State<TestimonialScreen> {
         children: [
           Image.asset('assets/images/twigr.png', width: 40),
           const SizedBox(width: 10),
-          Row(
-            children: List.generate(
-              5,
-              (index) => Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                child: Image.asset('assets/images/star.png', width: 22),
-              ),
-            ),
-          ),
+          // Interactive star rating
+          _buildRatingStars(0, isInteractive: true),
           const SizedBox(width: 10),
           Image.asset('assets/images/twigl.png', width: 40),
         ],
