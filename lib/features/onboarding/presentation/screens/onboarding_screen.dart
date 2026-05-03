@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
-import 'privacy_policy_screen.dart';
+import '../../../auth/models/onboarding_data.dart';
+import '../../../../core/services/auth_service.dart';
 
 class OnboardingScreen extends StatefulWidget {
-  const OnboardingScreen({super.key});
+  final OnboardingData? onboardingData;
+
+  const OnboardingScreen({super.key, this.onboardingData});
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -11,6 +14,8 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  String? _selectedUsingFor;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -28,67 +33,94 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
-  void _navigateToPrivacyPolicy() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+  // Handle using_for selection
+  void _onUsingForSelected(String value) {
+    print("OPTION SELECTED: $value");
+
+    setState(() {
+      _selectedUsingFor = value;
+    });
+  }
+
+  // Submit onboarding data
+  void _submitOnboarding() async {
+    print("SUBMIT BUTTON CLICKED");
+    print("SELECTED OPTION: $_selectedUsingFor");
+
+    // Validate selection
+    if (_selectedUsingFor == null) {
+      _showErrorSnackBar('Please select an option');
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      // Create complete onboarding data
+      final completeOnboardingData = widget.onboardingData?.copyWith(
+        usingFor: _selectedUsingFor,
+      );
+
+      if (completeOnboardingData == null) {
+        print("ONBOARDING ERROR: No onboarding data available");
+        _showErrorSnackBar('Missing onboarding data');
+        return;
+      }
+
+      // Convert to API format
+      final apiBody = completeOnboardingData.toApiMap();
+      print("FINAL PAYLOAD: $apiBody");
+
+      // Call existing API service
+      final authService = AuthService();
+      final response = await authService.submitOnboardingData(apiBody);
+
+      print("ONBOARDING API RESPONSE: ${response.data}");
+
+      if (response.success) {
+        print("ONBOARDING API SUCCESS");
+        _showSuccessSnackBar('Onboarding completed successfully!');
+
+        // Navigate to next screen (existing behavior)
+        _navigateToNextScreen();
+      } else {
+        print("ONBOARDING API ERROR: ${response.error}");
+        _showErrorSnackBar(response.error ?? 'Onboarding failed');
+      }
+    } catch (e) {
+      print("ONBOARDING API ERROR: $e");
+      _showErrorSnackBar('An error occurred during onboarding');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
+  }
+
+  void _skipOnboarding() {
+    print("SKIP BUTTON CLICKED");
+    _navigateToNextScreen();
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: PageView(
-        controller: _pageController,
-        onPageChanged: (index) {
-          setState(() {
-            _currentPage = index;
-          });
-        },
-        children: [
-          _OnboardingPage(
-            title: 'Welcome to SWAMPURNA',
-            subtitle: 'Your personal menstrual cycle tracking companion',
-            imagePath: 'assets/images/onboarding1.png',
-            onNext: _nextPage,
-            showNextButton: true,
-          ),
-          _OnboardingPage(
-            title: 'Track Your Health',
-            subtitle:
-                'Monitor your cycle with personalized insights and reminders',
-            imagePath: 'assets/images/onboarding2.png',
-            onNext: _nextPage,
-            showNextButton: true,
-          ),
-          _OnboardingPage(
-            title: 'Ready to Start?',
-            subtitle: 'Take control of your wellness journey today',
-            imagePath: 'assets/images/onboarding3.png',
-            onNext: _navigateToPrivacyPolicy,
-            showNextButton: true,
-          ),
-        ],
-      ),
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.green),
     );
   }
-}
 
-class _OnboardingPage extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final String imagePath;
-  final VoidCallback onNext;
-  final bool showNextButton;
-
-  const _OnboardingPage({
-    super.key,
-    required this.title,
-    required this.subtitle,
-    required this.imagePath,
-    required this.onNext,
-    this.showNextButton = false,
-  });
+  void _navigateToNextScreen() {
+    _showSuccessSnackBar('Onboarding completed! Ready for next step.');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -97,49 +129,30 @@ class _OnboardingPage extends StatelessWidget {
         padding: const EdgeInsets.all(24.0),
         child: Column(
           children: [
-            // Image placeholder
-            Expanded(
-              flex: 3,
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: const Icon(Icons.image, size: 100, color: Colors.grey),
-                ),
-              ),
-            ),
-
+            // Header section
             const SizedBox(height: 40),
+            Image.asset(
+              'assets/images/onboarding3.png',
+              height: 200,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(height: 30),
 
-            // Title
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 28,
+            const Text(
+              'How will you use SWAMPURNA?',
+              style: TextStyle(
+                fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF1A237E),
-                height: 1.2,
               ),
               textAlign: TextAlign.center,
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
 
-            // Subtitle
-            Text(
-              subtitle,
-              style: const TextStyle(
+            const Text(
+              'Select your primary use case',
+              style: TextStyle(
                 fontSize: 16,
                 color: Color(0xFF5C6BC0),
                 height: 1.5,
@@ -147,31 +160,148 @@ class _OnboardingPage extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
 
-            const Spacer(),
+            // Options list in scrollable area
+            const SizedBox(height: 30),
+            Expanded(
+              flex: 2,
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    // Options list only
+                    ...[
+                      'Personal cycle tracking',
+                      'Planning pregnancy',
+                      'Monitoring existing pregnancy',
+                      'Postpartum care',
+                      'Menopause management',
+                      'Medical/research purposes',
+                    ].map(
+                      (option) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Material(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: () {
+                              print("OPTION TAPPED: $option");
+                              _onUsingForSelected(option);
+                            },
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: _selectedUsingFor == option
+                                    ? const Color(0xFFE3F2FD)
+                                    : const Color(0xFFF5F5F5),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: _selectedUsingFor == option
+                                      ? const Color(0xFF1976D2)
+                                      : const Color(0xFFE0E0E0),
+                                  width: _selectedUsingFor == option ? 2 : 1,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  // Selection indicator
+                                  if (_selectedUsingFor == option)
+                                    const Icon(
+                                      Icons.check_circle,
+                                      color: Color(0xFF1976D2),
+                                      size: 20,
+                                    ),
+                                  if (_selectedUsingFor == option)
+                                    const SizedBox(width: 8),
 
-            // Next button (only show if specified)
-            if (showNextButton) ...[
+                                  // Option text
+                                  Expanded(
+                                    child: Text(
+                                      option,
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        color: _selectedUsingFor == option
+                                            ? const Color(0xFF1976D2)
+                                            : const Color(0xFF1A237E),
+                                        fontWeight: _selectedUsingFor == option
+                                            ? FontWeight.w600
+                                            : FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Submit and Skip buttons - OUTSIDE Expanded widget
+            const SizedBox(height: 20),
+            if (_isSubmitting) ...[
+              // Loading state
+              const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1976D2)),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Submitting...',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Color(0xFF1976D2),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ] else ...[
+              // Submit button
               SizedBox(
                 width: double.infinity,
-                height: 56,
+                height: 50,
                 child: ElevatedButton(
-                  onPressed: onNext,
+                  onPressed: _submitOnboarding,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1976D2),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     elevation: 2,
                   ),
                   child: const Text(
-                    'Next',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                    'Submit',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+
+              const SizedBox(height: 12),
+
+              // Skip button
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: OutlinedButton(
+                  onPressed: _skipOnboarding,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF1976D2),
+                    side: const BorderSide(color: Color(0xFF1976D2)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Skip',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
             ],
+            const SizedBox(height: 20),
           ],
         ),
       ),

@@ -35,7 +35,7 @@ class SurveyService {
 
 /// ---------------- SCREEN ----------------
 class SourceSelectionScreen extends StatefulWidget {
-  final Map<String, dynamic> onboardingData;
+  final OnboardingData onboardingData;
 
   const SourceSelectionScreen({super.key, required this.onboardingData});
 
@@ -56,8 +56,9 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen> {
     debugPrint("Tapped option: $option");
 
     // Update onboarding data with source selection
-    final updatedData = Map<String, dynamic>.from(widget.onboardingData);
-    updatedData['source'] = option;
+    final updatedData = widget.onboardingData.copyWith(
+      // onboardingSource: option, // Removed - field doesn't exist
+    );
 
     Navigator.of(context).push(
       MaterialPageRoute(

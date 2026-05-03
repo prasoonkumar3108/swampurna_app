@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'source_selection_screen.dart';
+import '../models/onboarding_data.dart';
 
 class ConfirmationScreen extends StatelessWidget {
-  final Map<String, dynamic> onboardingData;
+  final OnboardingData onboardingData;
 
   const ConfirmationScreen({super.key, required this.onboardingData});
 
@@ -41,11 +42,10 @@ class ConfirmationScreen extends StatelessWidget {
                     text: 'Yes, It\'s for myself.',
                     onTap: () {
                       print('Selected: Yes - Using for myself');
-                      // Update onboarding data with source
-                      final updatedData = Map<String, dynamic>.from(
-                        onboardingData,
+                      // Update onboarding data with pregnancy status
+                      final updatedData = onboardingData.copyWith(
+                        // pregnancyStatus: 'self', // Removed - field doesn't exist
                       );
-                      updatedData['source'] = 'self';
 
                       // Navigate to SourceSelectionScreen
                       Navigator.push(
@@ -66,11 +66,10 @@ class ConfirmationScreen extends StatelessWidget {
                     text: 'No, It\'s for my partner.',
                     onTap: () {
                       print('Selected: No - Using for partner');
-                      // Update onboarding data with source
-                      final updatedData = Map<String, dynamic>.from(
-                        onboardingData,
+                      // Update onboarding data with pregnancy status
+                      final updatedData = onboardingData.copyWith(
+                        // pregnancyStatus: 'partner', // Removed - field doesn't exist
                       );
-                      updatedData['source'] = 'partner';
 
                       // Navigate to SourceSelectionScreen
                       Navigator.push(

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 // IMPORT: Ensure karein ki ye path aapke project folder structure se match kare
 import 'pregnancy_selection_screen.dart';
+import '../models/onboarding_data.dart';
 
 class BirthYearPickerScreen extends StatefulWidget {
-  final Map<String, dynamic> onboardingData;
+  final OnboardingData onboardingData;
 
   const BirthYearPickerScreen({super.key, required this.onboardingData});
 
@@ -40,15 +41,14 @@ class _BirthYearPickerScreenState extends State<BirthYearPickerScreen> {
   void _onNextPressed() {
     debugPrint("Navigating with year: $_selectedYear");
 
-    // Update onboarding data with birth year
-    final updatedData = Map<String, dynamic>.from(widget.onboardingData);
-    updatedData['birthYear'] = _selectedYear;
-
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) =>
-            PregnancySelectionScreen(onboardingData: updatedData),
+        builder: (context) => PregnancySelectionScreen(
+          selectedBirthYear: _selectedYear,
+          onboardingSource: widget.onboardingData.source ?? "friends_or_family",
+          usingFor: "self",
+        ),
       ),
     );
   }

@@ -656,4 +656,61 @@ class AuthService {
       );
     }
   }
+
+  /// Submit onboarding data
+  Future<ApiResponse<Map<String, dynamic>>> submitOnboardingData(
+    Map<String, dynamic> onboardingData,
+  ) async {
+    try {
+      print("ONBOARDING API HIT");
+      print(
+        "URL: https://swampurna-final-production.up.railway.app/api/v1/customers/onboarding",
+      );
+      print("PAYLOAD: $onboardingData");
+      print(
+        "HEADERS: Authorization: Bearer <token>, Content-Type: application/json",
+      );
+
+      debugPrint('🚀 Submitting onboarding data: $onboardingData');
+
+      final response = await _makeRequest<Map<String, dynamic>>(
+        'POST',
+        '/customers/onboarding',
+        body: onboardingData,
+        requiresAuth: true,
+      );
+
+      print("STATUS CODE: ${response.statusCode}");
+      print("RESPONSE DATA: ${response.data}");
+
+      // SUCCESS: HTTP 200 or 201 with data
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        debugPrint('✅ Onboarding data submitted successfully');
+        return ApiResponse(
+          success: true,
+          statusCode: response.statusCode,
+          data: response.data,
+          error: null,
+        );
+      } else {
+        final errorMessage =
+            response.error ?? 'Failed to submit onboarding data';
+        debugPrint('❌ Onboarding submission failed: $errorMessage');
+        return ApiResponse.error(errorMessage);
+      }
+    } catch (e) {
+      print("FULL ONBOARDING API EXCEPTION: $e");
+      print("EXCEPTION TYPE: ${e.runtimeType}");
+
+      debugPrint('❌ Onboarding submission error: $e');
+      if (e is ApiException) {
+        print("API EXCEPTION STATUS: ${e.statusCode}");
+        print("API EXCEPTION MESSAGE: ${e.message}");
+        return ApiResponse.error(e.message, statusCode: e.statusCode);
+      }
+      return ApiResponse.error(
+        'Failed to submit onboarding data: ${e.toString()}',
+      );
+    }
+  }
 }

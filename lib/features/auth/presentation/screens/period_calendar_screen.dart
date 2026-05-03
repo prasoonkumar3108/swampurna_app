@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'period_duration_picker_screen.dart';
+import '../models/onboarding_data.dart';
 
 class PeriodCalendarScreen extends StatefulWidget {
-  final Map<String, dynamic> onboardingData;
+  final OnboardingData onboardingData;
 
   const PeriodCalendarScreen({super.key, required this.onboardingData});
 
@@ -34,9 +35,12 @@ class _PeriodCalendarScreenState extends State<PeriodCalendarScreen> {
 
   // Common Navigation Helper
   void _navigateToDurationPicker(DateTime? date) {
-    // Update onboarding data with last period date
-    final updatedData = Map<String, dynamic>.from(widget.onboardingData);
-    updatedData['lastPeriodDate'] = date?.toIso8601String();
+    // Initialize onboarding data with existing values
+    final updatedData = OnboardingData(
+      email: widget.onboardingData.email,
+      otp: widget.onboardingData.otp,
+      birthYear: widget.onboardingData.birthYear,
+    );
 
     Navigator.push(
       context,

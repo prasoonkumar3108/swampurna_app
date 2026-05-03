@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'testimonial_screen.dart';
+import '../models/onboarding_data.dart';
 
 class CycleLengthPickerScreen extends StatefulWidget {
-  final Map<String, dynamic> onboardingData;
+  final OnboardingData onboardingData;
 
   const CycleLengthPickerScreen({super.key, required this.onboardingData});
 
@@ -122,10 +123,9 @@ class _CycleLengthPickerScreenState extends State<CycleLengthPickerScreen> {
                   debugPrint("Moving forward with: $selectedValue days");
 
                   // Update onboarding data with cycle length
-                  final updatedData = Map<String, dynamic>.from(
-                    widget.onboardingData,
+                  final updatedData = widget.onboardingData.copyWith(
+                    // cycleLength: selectedValue, // Add if field exists in model
                   );
-                  updatedData['cycleLength'] = selectedValue;
 
                   Navigator.of(context, rootNavigator: true).push(
                     MaterialPageRoute(

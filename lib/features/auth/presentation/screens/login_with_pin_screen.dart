@@ -2,15 +2,19 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/services/auth_service.dart';
-import '../../../../core/services/token_storage_service.dart';
-import 'set_pin_screen.dart';
 import 'confirmation_screen.dart';
+import '../models/onboarding_data.dart';
+import 'set_pin_screen.dart';
 
 class LoginWithPinScreen extends StatefulWidget {
   final String email;
-  final String? token;
+  final OnboardingData? onboardingData;
 
-  const LoginWithPinScreen({super.key, required this.email, this.token});
+  const LoginWithPinScreen({
+    super.key,
+    required this.email,
+    this.onboardingData,
+  });
 
   @override
   State<LoginWithPinScreen> createState() => _LoginWithPinScreenState();
@@ -40,12 +44,6 @@ class _LoginWithPinScreenState extends State<LoginWithPinScreen> {
   void initState() {
     super.initState();
     debugPrint('🔐 LoginWithPinScreen initialized for email: ${widget.email}');
-
-    // Save token if provided
-    if (widget.token != null && widget.token!.isNotEmpty) {
-      TokenStorageService.instance.saveToken(widget.token!);
-      debugPrint('🔑 Token saved successfully');
-    }
   }
 
   @override
@@ -110,17 +108,22 @@ class _LoginWithPinScreenState extends State<LoginWithPinScreen> {
         if (response.success) {
           debugPrint('✅ PIN login successful');
 
-          // Initialize onboarding data
-          final onboardingData = <String, dynamic>{
-            'email': widget.email,
-            'login_method': 'pin',
-          };
-
           // Navigate to ConfirmationScreen
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
-              builder: (_) =>
-                  ConfirmationScreen(onboardingData: onboardingData),
+              builder: (_) => ConfirmationScreen(
+                onboardingData: widget.onboardingData != null
+                    ? OnboardingData(
+                        email: widget.email,
+                        otp: _getCompletePIN(),
+                        birthYear: widget.onboardingData?.birthYear ?? 0,
+                      )
+                    : OnboardingData(
+                        email: widget.email,
+                        otp: _getCompletePIN(),
+                        birthYear: 0,
+                      ),
+              ),
             ),
             (route) => false,
           );
@@ -154,14 +157,15 @@ class _LoginWithPinScreenState extends State<LoginWithPinScreen> {
     debugPrint('⏭️ Skipping PIN flow, going to ConfirmationScreen');
 
     // Initialize onboarding data
-    final onboardingData = <String, dynamic>{
-      'email': widget.email,
-      'login_method': 'skip',
-    };
+    final onboardingModel = OnboardingData(
+      email: widget.email,
+      otp: '',
+      birthYear: 0,
+    );
 
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
-        builder: (_) => ConfirmationScreen(onboardingData: onboardingData),
+        builder: (_) => ConfirmationScreen(onboardingData: onboardingModel),
       ),
       (route) => false,
     );

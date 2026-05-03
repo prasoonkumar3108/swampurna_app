@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import '../../../../core/services/auth_service.dart';
-// IMPORTANT: Replace 'my_app' with your actual project name from pubspec.yaml
-import 'package:my_app/features/auth/presentation/screens/menstrual_journey_screen.dart';
+import '../../../onboarding/presentation/screens/onboarding_screen.dart';
+import '../../models/onboarding_data.dart' as auth_model;
+import '../models/onboarding_data.dart' as presentation_model;
 
 class TestimonialScreen extends StatefulWidget {
-  final Map<String, dynamic> onboardingData;
+  final presentation_model.OnboardingData onboardingData;
 
   const TestimonialScreen({super.key, required this.onboardingData});
 
@@ -16,6 +17,23 @@ class TestimonialScreen extends StatefulWidget {
 class _TestimonialScreenState extends State<TestimonialScreen> {
   // State management for testimonials
   List<Map<String, dynamic>> _testimonials = [];
+
+  // Convert presentation model to auth model
+  auth_model.OnboardingData _convertToAuthModel(
+    presentation_model.OnboardingData data,
+  ) {
+    return auth_model.OnboardingData(
+      onboardingSource: data.source,
+      birthYear: data.birthYear,
+      pregnancyStatus: data.isPregnant == true
+          ? 'yes_i_am'
+          : data.isPregnant == false
+          ? 'not_pregnant'
+          : null,
+      usingFor: null, // Will be set in OnboardingScreen
+    );
+  }
+
   bool _isLoading = true;
   bool _isLoadingMore = false;
   bool _hasError = false;
@@ -480,12 +498,13 @@ class _TestimonialScreenState extends State<TestimonialScreen> {
             ),
           ),
           onPressed: () {
-            // FIXED: Using MaterialPageRoute without 'const' if issues persist,
-            // but the import fix is the real key here.
+            // Navigate to OnboardingScreen for using_for selection
+            final authData = _convertToAuthModel(widget.onboardingData);
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const MenstrualJourneyScreen(),
+                builder: (context) =>
+                    OnboardingScreen(onboardingData: authData),
               ),
             );
           },

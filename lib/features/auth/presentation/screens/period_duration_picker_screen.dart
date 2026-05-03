@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'cycle_length_picker_screen.dart';
+import '../models/onboarding_data.dart';
 
 class PeriodDurationPickerScreen extends StatefulWidget {
-  final Map<String, dynamic> onboardingData;
+  final OnboardingData onboardingData;
 
   const PeriodDurationPickerScreen({super.key, required this.onboardingData});
 
@@ -126,8 +127,9 @@ class _PeriodDurationPickerScreenState
     debugPrint("Navigating with: Duration: $_selectedDays days");
 
     // Update onboarding data with period duration
-    final updatedData = Map<String, dynamic>.from(widget.onboardingData);
-    updatedData['periodDuration'] = _selectedDays;
+    final updatedData = widget.onboardingData.copyWith(
+      periodDuration: _selectedDays,
+    );
 
     Navigator.push(
       context,
