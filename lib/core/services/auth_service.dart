@@ -743,4 +743,36 @@ class AuthService {
       );
     }
   }
+
+  /// Get period tracker summary data for a specific month
+  Future<ApiResponse<Map<String, dynamic>>> getPeriodTrackerSummary(
+    String month,
+  ) async {
+    try {
+      debugPrint('🔄 Fetching period tracker summary for month: $month');
+
+      final response = await _makeRequest<Map<String, dynamic>>(
+        'GET',
+        '/period-tracker/summary?month=$month',
+        requiresAuth: true,
+      );
+
+      debugPrint('📊 Period tracker summary response: ${response.data}');
+
+      if (response.success) {
+        debugPrint('✅ Period tracker summary data fetched successfully');
+        return ApiResponse.success(response.data ?? {});
+      } else {
+        final errorMessage =
+            response.error ?? 'Failed to fetch period tracker summary';
+        debugPrint('❌ Period tracker summary failed: $errorMessage');
+        return ApiResponse.error(errorMessage);
+      }
+    } catch (e) {
+      debugPrint('❌ Period tracker summary error: $e');
+      return ApiResponse.error(
+        'Failed to fetch period tracker summary: ${e.toString()}',
+      );
+    }
+  }
 }

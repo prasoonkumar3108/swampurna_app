@@ -15,7 +15,15 @@ class CalendarDay {
 class TrackerData {
   final String monthTitle;
   final List<CalendarDay> days;
-  TrackerData({required this.monthTitle, required this.days});
+  final List<Map<String, dynamic>>? legend;
+  final Map<String, dynamic>? adaptiveMetrics;
+
+  TrackerData({
+    required this.monthTitle,
+    required this.days,
+    this.legend,
+    this.adaptiveMetrics,
+  });
 }
 
 class TrackerScreen extends StatefulWidget {
@@ -38,7 +46,6 @@ class _TrackerScreenState extends State<TrackerScreen> {
   late TrackerData apiData;
 
   // API Integration States
-  bool _isLoading = true;
   bool _hasError = false;
   String _errorMessage = '';
 
@@ -47,9 +54,14 @@ class _TrackerScreenState extends State<TrackerScreen> {
   int _periodLengthDays = 5; // Default
   int _ovulationStartDay = 14; // Default
 
+  // Calendar Navigation
+  DateTime _currentMonth = DateTime.now();
+
   @override
   void initState() {
     super.initState();
+    // Initialize with default data so UI is never empty
+    apiData = _generateDefaultCalendarData();
     _fetchPeriodTrackerSetup();
   }
 
@@ -59,7 +71,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
       debugPrint('🔄 Fetching period tracker setup from API...');
 
       final authService = AuthService();
-      final response = await authService.fetchPeriodTrackerSetup();
+      final response = await authService.getPeriodTrackerSetup();
 
       if (mounted) {
         if (response.success && response.data != null) {
@@ -79,10 +91,8 @@ class _TrackerScreenState extends State<TrackerScreen> {
               '📊 API Data - Cycle: $_cycleLengthDays, Period: $_periodLengthDays, Ovulation: $_ovulationStartDay',
             );
 
-            // Generate calendar data based on API values
-            apiData = _generateCalendarDataFromAPI();
-            _isLoading = false;
-            _hasError = false;
+            // Now fetch calendar data for current month
+            _fetchPeriodTrackerSummary();
           });
         } else {
           throw Exception(
@@ -93,12 +103,54 @@ class _TrackerScreenState extends State<TrackerScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _isLoading = false;
           _hasError = true;
           _errorMessage = 'Failed to load period data. Using default values.';
           apiData = _generateDefaultCalendarData(); // Fallback to default
         });
         debugPrint('❌ Error fetching period tracker setup: $e');
+      }
+    }
+  }
+
+  // Fetch Period Tracker Summary for current month
+  Future<void> _fetchPeriodTrackerSummary() async {
+    try {
+      final month =
+          '${_currentMonth.year.toString().padLeft(4, '0')}-${_currentMonth.month.toString().padLeft(2, '0')}';
+      debugPrint('🔄 Fetching period tracker summary for month: $month');
+
+      final authService = AuthService();
+      final response = await authService.getPeriodTrackerSummary(month);
+
+      debugPrint('📊 API Response: ${response.data}'); // Debugging log
+
+      if (mounted) {
+        if (response.success && response.data != null) {
+          final data = response.data!;
+          final summaryData = data['data'] ?? data;
+
+          debugPrint('📋 Summary Data: $summaryData'); // Debugging log
+
+          setState(() {
+            // Generate calendar data from API summary
+            apiData = _generateCalendarDataFromSummary(summaryData);
+            _hasError = false;
+          });
+        } else {
+          // If summary API fails, fall back to setup-based generation
+          setState(() {
+            apiData = _generateCalendarDataFromAPI();
+            _hasError = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          apiData = _generateCalendarDataFromAPI();
+          _hasError = false;
+        });
+        debugPrint('❌ Error fetching period tracker summary: $e');
       }
     }
   }
@@ -112,7 +164,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
     return null;
   }
 
-  // Generate calendar data based on API values
+  // Generate calendar data based on API values (fallback)
   TrackerData _generateCalendarDataFromAPI() {
     final List<CalendarDay> days = [];
 
@@ -123,17 +175,68 @@ class _TrackerScreenState extends State<TrackerScreen> {
       if (day <= _periodLengthDays) {
         type = 'period'; // Period days
       } else if (day <= _periodLengthDays + 2) {
-        type = 'post'; // Post-period (2 days)
+        type = 'post_period'; // Post-period (2 days)
       } else if (day >= _ovulationStartDay && day < _ovulationStartDay + 5) {
-        type = 'ovulation'; // Ovulation phase (5 days)
+        type = 'peak_ovulation'; // Ovulation phase (5 days)
       } else if (day > _cycleLengthDays - 3) {
-        type = 'pre'; // Pre-period (3 days)
+        type = 'pre_period'; // Pre-period (3 days)
       }
 
       days.add(CalendarDay(day: day, type: type));
     }
 
-    return TrackerData(monthTitle: "Your Cycle", days: days);
+    return TrackerData(
+      monthTitle:
+          "${_currentMonth.month.toString().padLeft(2, '0')}/${_currentMonth.year}",
+      days: days,
+    );
+  }
+
+  // Generate calendar data from API summary response
+  TrackerData _generateCalendarDataFromSummary(
+    Map<String, dynamic> summaryData,
+  ) {
+    final List<CalendarDay> days = [];
+
+    // Debugging: Check the structure
+    debugPrint('📝 SummaryData keys: ${summaryData.keys}');
+
+    // Try to access days array correctly
+    final daysArray = summaryData['days'] as List<dynamic>? ?? [];
+    final legend = summaryData['legend'] as List<Map<String, dynamic>>?;
+    final adaptiveMetrics =
+        summaryData['adaptive_metrics'] as Map<String, dynamic>?;
+
+    debugPrint('📅 Days array length: ${daysArray.length}');
+
+    // Map API days to calendar days
+    for (final dayData in daysArray) {
+      if (dayData is Map<String, dynamic>) {
+        final dateStr = dayData['date'] as String? ?? '';
+        final primaryStatus = dayData['primary_status'] as String? ?? 'none';
+
+        debugPrint('🔍 Day data: $dayData');
+
+        // Extract day number from date (assuming format YYYY-MM-DD)
+        final dayNumber = int.tryParse(dateStr.split('-').last) ?? 1;
+
+        days.add(CalendarDay(day: dayNumber, type: primaryStatus));
+      }
+    }
+
+    // If no days from API, use fallback
+    if (days.isEmpty) {
+      debugPrint('⚠️ No days from API, using fallback');
+      return _generateCalendarDataFromAPI();
+    }
+
+    return TrackerData(
+      monthTitle:
+          "${_currentMonth.month.toString().padLeft(2, '0')}/${_currentMonth.year}",
+      days: days,
+      legend: legend,
+      adaptiveMetrics: adaptiveMetrics,
+    );
   }
 
   // Generate default calendar data (fallback)
@@ -148,6 +251,21 @@ class _TrackerScreenState extends State<TrackerScreen> {
         ...List.generate(2, (i) => CalendarDay(day: i + 27, type: 'pre')),
       ],
     );
+  }
+
+  // Month navigation methods
+  void _navigateToPreviousMonth() {
+    setState(() {
+      _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1);
+      _fetchPeriodTrackerSummary(); // Fetch data for new month
+    });
+  }
+
+  void _navigateToNextMonth() {
+    setState(() {
+      _currentMonth = DateTime(_currentMonth.year, _currentMonth.month + 1);
+      _fetchPeriodTrackerSummary(); // Fetch data for new month
+    });
   }
 
   void navigateTo(Widget screen) {
@@ -188,48 +306,6 @@ class _TrackerScreenState extends State<TrackerScreen> {
   // --- INDEX 0: MAIN TRACKER UI ---
   Widget _buildTrackerUI() {
     final double screenWidth = MediaQuery.of(context).size.width;
-
-    // Show loading indicator while fetching data
-    if (_isLoading) {
-      return SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Column(
-          children: [
-            const SizedBox(height: 40),
-            _buildMainHeader(),
-            const SizedBox(height: 50),
-            Container(
-              height: 300,
-              child: const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(
-                      color: Color(0xFF1E1E5F),
-                      strokeWidth: 3,
-                    ),
-                    SizedBox(height: 20),
-                    Text(
-                      "Loading your cycle data...",
-                      style: TextStyle(
-                        color: Color(0xFF1E1E5F),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            _buildLegendSection(),
-            const SizedBox(height: 10),
-            _buildActionBtn("Edit period dates"),
-            _buildInsightsSection(),
-            const SizedBox(height: 100),
-          ],
-        ),
-      );
-    }
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -279,6 +355,13 @@ class _TrackerScreenState extends State<TrackerScreen> {
   }
 
   Widget _buildTopWarningBar() {
+    // Show limited data banner based on adaptive_metrics
+    final samplesUsedForCycle =
+        apiData.adaptiveMetrics?['samples_used_for_cycle'] ?? 1;
+    final shouldShowBanner = samplesUsedForCycle == 0;
+
+    if (!shouldShowBanner) return const SizedBox.shrink();
+
     return Container(
       margin: const EdgeInsets.all(12),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -320,16 +403,22 @@ class _TrackerScreenState extends State<TrackerScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Icon(Icons.chevron_left, color: navyBlue, size: 30),
+          IconButton(
+            onPressed: _navigateToPreviousMonth,
+            icon: Icon(Icons.chevron_left, color: navyBlue, size: 30),
+          ),
           Text(
-            "Your Tracker",
+            apiData.monthTitle,
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
               color: navyBlue,
             ),
           ),
-          Icon(Icons.chevron_right, color: navyBlue, size: 30),
+          IconButton(
+            onPressed: _navigateToNextMonth,
+            icon: Icon(Icons.chevron_right, color: navyBlue, size: 30),
+          ),
         ],
       ),
     );
@@ -391,15 +480,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
   }
 
   Widget _calendarCell(CalendarDay info) {
-    Color circleColor = Colors.transparent;
-    if (info.type == 'period')
-      circleColor = periodPink;
-    else if (info.type == 'post')
-      circleColor = postPurple;
-    else if (info.type == 'ovulation')
-      circleColor = ovulationGreen;
-    else if (info.type == 'pre')
-      circleColor = preYellow;
+    Color circleColor = _getColorForStatus(info.type);
 
     return Center(
       child: Container(
@@ -418,20 +499,46 @@ class _TrackerScreenState extends State<TrackerScreen> {
   }
 
   Widget _buildLegendSection() {
+    // Use API legend if available, otherwise use default
+    final legendItems =
+        apiData.legend ??
+        [
+          {'color': 'pre_period', 'label': 'Pre-Period'},
+          {'color': 'period', 'label': 'Period Days'},
+          {'color': 'post_period', 'label': 'Post-Period'},
+          {'color': 'peak_ovulation', 'label': 'Peak Ovulation'},
+        ];
+
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Wrap(
         spacing: 20,
         runSpacing: 10,
         alignment: WrapAlignment.center,
-        children: [
-          _legendItem(preYellow, "Pre-Period"),
-          _legendItem(periodPink, "Period Days"),
-          _legendItem(postPurple, "Post-Period"),
-          _legendItem(ovulationGreen, "Peak Ovulation"),
-        ],
+        children: legendItems.map((item) {
+          final colorKey = item['color'] as String? ?? 'none';
+          final label = item['label'] as String? ?? 'Unknown';
+          final color = _getColorForStatus(colorKey);
+          return _legendItem(color, label);
+        }).toList(),
       ),
     );
+  }
+
+  // Helper method to map status to color
+  Color _getColorForStatus(String status) {
+    switch (status) {
+      case 'period':
+        return periodPink; // Magenta/Pink
+      case 'pre_period':
+        return preYellow; // Yellow/Orange
+      case 'post_period':
+        return postPurple; // Purple
+      case 'peak_ovulation':
+        return ovulationGreen; // Green
+      default:
+        return Colors.grey;
+    }
   }
 
   Widget _legendItem(Color color, String label) {
