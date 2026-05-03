@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import '../../../../core/services/auth_service.dart';
 import '../../../onboarding/presentation/screens/onboarding_screen.dart';
-import '../../models/onboarding_data.dart' as auth_model;
-import '../models/onboarding_data.dart' as presentation_model;
+import '../models/onboarding_data.dart';
 
 class TestimonialScreen extends StatefulWidget {
-  final presentation_model.OnboardingData onboardingData;
+  final OnboardingData onboardingData;
 
   const TestimonialScreen({super.key, required this.onboardingData});
 
@@ -17,22 +16,6 @@ class TestimonialScreen extends StatefulWidget {
 class _TestimonialScreenState extends State<TestimonialScreen> {
   // State management for testimonials
   List<Map<String, dynamic>> _testimonials = [];
-
-  // Convert presentation model to auth model
-  auth_model.OnboardingData _convertToAuthModel(
-    presentation_model.OnboardingData data,
-  ) {
-    return auth_model.OnboardingData(
-      onboardingSource: data.source,
-      birthYear: data.birthYear,
-      pregnancyStatus: data.isPregnant == true
-          ? 'yes_i_am'
-          : data.isPregnant == false
-          ? 'not_pregnant'
-          : null,
-      usingFor: null, // Will be set in OnboardingScreen
-    );
-  }
 
   bool _isLoading = true;
   bool _isLoadingMore = false;
@@ -498,13 +481,12 @@ class _TestimonialScreenState extends State<TestimonialScreen> {
             ),
           ),
           onPressed: () {
-            // Navigate to OnboardingScreen for using_for selection
-            final authData = _convertToAuthModel(widget.onboardingData);
+            // Navigate to OnboardingScreen for cycle visualization
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) =>
-                    OnboardingScreen(onboardingData: authData),
+                    OnboardingScreen(onboardingData: widget.onboardingData),
               ),
             );
           },

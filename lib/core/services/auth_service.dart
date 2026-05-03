@@ -713,4 +713,34 @@ class AuthService {
       );
     }
   }
+
+  /// Get period tracker setup data
+  Future<ApiResponse<Map<String, dynamic>>> getPeriodTrackerSetup() async {
+    try {
+      debugPrint('🔄 Fetching period tracker setup data');
+
+      final response = await _makeRequest<Map<String, dynamic>>(
+        'GET',
+        '/period-tracker/setup',
+        requiresAuth: true,
+      );
+
+      debugPrint('📊 Period tracker setup response: ${response.data}');
+
+      if (response.success) {
+        debugPrint('✅ Period tracker setup data fetched successfully');
+        return ApiResponse.success(response.data ?? {});
+      } else {
+        final errorMessage =
+            response.error ?? 'Failed to fetch period tracker setup';
+        debugPrint('❌ Period tracker setup failed: $errorMessage');
+        return ApiResponse.error(errorMessage);
+      }
+    } catch (e) {
+      debugPrint('❌ Period tracker setup error: $e');
+      return ApiResponse.error(
+        'Failed to fetch period tracker setup: ${e.toString()}',
+      );
+    }
+  }
 }
