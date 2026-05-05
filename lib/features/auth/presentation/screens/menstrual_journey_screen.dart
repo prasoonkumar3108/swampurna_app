@@ -105,7 +105,7 @@ class _MenstrualJourneyScreenState extends State<MenstrualJourneyScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // TOP LIGHT-BLUE SECTION (22% height)
+            // TOP SECTION - 22% height
             Expanded(
               flex: 22,
               child: Center(
@@ -116,7 +116,7 @@ class _MenstrualJourneyScreenState extends State<MenstrualJourneyScreen> {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: primaryTextColor,
-                      fontSize: 24, // Smaller font
+                      fontSize: 23,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -124,12 +124,12 @@ class _MenstrualJourneyScreenState extends State<MenstrualJourneyScreen> {
               ),
             ),
 
-            // CENTER WHITE SECTION (28% height) - Full-width strip
+            // MIDDLE WHITE STRIP - 32% height
             Expanded(
-              flex: 28,
+              flex: 32,
               child: Container(
                 width: double.infinity,
-                color: Colors.white, // Flat white, no rounded card
+                color: Colors.white,
                 child: Center(
                   child: _isLoading
                       ? _buildLoadingIndicator()
@@ -138,62 +138,28 @@ class _MenstrualJourneyScreenState extends State<MenstrualJourneyScreen> {
               ),
             ),
 
-            // BOTTOM LIGHT-BLUE SECTION (remaining height)
+            // BOTTOM SECTION - 46% height
             Expanded(
-              flex: 50,
+              flex: 46,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  const SizedBox(height: 20),
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 20),
                     child: Text(
-                      "Next we'll look at your cycle and fertility",
+                      "Next we'll look at your cycle\nand fertility",
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: primaryTextColor,
-                        fontSize: 18, // Smaller font
+                        fontSize: 19,
                         fontWeight: FontWeight.w600,
+                        height: 1.3,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 30),
-                  // Single Next button - smaller size
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: SizedBox(
-                      width: 160, // Reduced from 200
-                      height: 40, // Reduced from 50
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => TrackerScreen(),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(
-                            0xFF2E3192,
-                          ), // Dark purple
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              20,
-                            ), // Smaller pill shape
-                          ),
-                          elevation: 2, // Reduced shadow
-                        ),
-                        child: const Text(
-                          "Next",
-                          style: TextStyle(
-                            fontSize: 14, // Reduced from 16
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+                  const SizedBox(height: 35),
+                  _buildNextButton(),
                 ],
               ),
             ),
@@ -203,46 +169,67 @@ class _MenstrualJourneyScreenState extends State<MenstrualJourneyScreen> {
     );
   }
 
+  // Build Next Button - matches screenshot
+  Widget _buildNextButton() {
+    return SizedBox(
+      width: 140,
+      height: 42,
+      child: ElevatedButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => TrackerScreen()),
+          );
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF2E3192),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(21),
+          ),
+          elevation: 3,
+          padding: EdgeInsets.zero,
+        ),
+        child: const Text(
+          "Next",
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
+  }
+
   // Cycle chart with decorations - matches expected.jpg
   Widget _buildCycleChartWithDecorations() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final chartSize =
-            constraints.maxWidth * 0.7; // Slightly larger for better visibility
+        final chartSize = constraints.maxWidth * 0.65;
         return Stack(
           children: [
-            // Decorative elements around chart
+            // Decorative blobs around chart
             Positioned(
-              top: 10,
-              left: constraints.maxWidth * 0.1,
-              child: _buildDecorativeElement(
-                Icons.female,
-                Colors.pink.withOpacity(0.3),
-              ),
+              top: 5,
+              left: constraints.maxWidth * 0.15,
+              child: _buildDecorativeBlob(Colors.pink.withOpacity(0.2)),
             ),
             Positioned(
-              top: 10,
-              right: constraints.maxWidth * 0.1,
-              child: _buildDecorativeElement(
-                Icons.egg,
-                Colors.purple.withOpacity(0.3),
-              ),
+              top: 8,
+              right: constraints.maxWidth * 0.12,
+              child: _buildDecorativeBlob(Colors.purple.withOpacity(0.2)),
             ),
             Positioned(
-              bottom: 10,
-              left: constraints.maxWidth * 0.1,
-              child: _buildDecorativeElement(
-                Icons.favorite,
-                Colors.red.withOpacity(0.3),
-              ),
+              top: chartSize * 0.6,
+              right: constraints.maxWidth * 0.08,
+              child: _buildDecorativeBlob(Colors.blue.withOpacity(0.15)),
             ),
             Positioned(
-              bottom: 10,
-              right: constraints.maxWidth * 0.1,
-              child: _buildDecorativeElement(
-                Icons.water_drop,
-                Colors.blue.withOpacity(0.3),
-              ),
+              bottom: 5,
+              left: constraints.maxWidth * 0.18,
+              child: _buildDecorativeBlob(Colors.yellow.withOpacity(0.2)),
+            ),
+            Positioned(
+              bottom: 8,
+              right: constraints.maxWidth * 0.15,
+              child: _buildDecorativeBlob(Colors.green.withOpacity(0.15)),
             ),
 
             // Main cycle chart
@@ -259,13 +246,22 @@ class _MenstrualJourneyScreenState extends State<MenstrualJourneyScreen> {
     );
   }
 
-  // Decorative element widget
-  Widget _buildDecorativeElement(IconData icon, Color color) {
+  // Decorative blob widget - organic shapes
+  Widget _buildDecorativeBlob(Color color) {
     return Container(
-      width: 30,
-      height: 30,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      child: Icon(icon, color: color, size: 16),
+      width: 25,
+      height: 25,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.3),
+            blurRadius: 8,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
     );
   }
 
@@ -356,7 +352,7 @@ class _MenstrualJourneyScreenState extends State<MenstrualJourneyScreen> {
   }
 }
 
-// Ring Cycle Painter - Matches expected.jpg with proper ring and center text
+// Ring Cycle Painter - Proper stroke-based ring rendering
 class RingCyclePainter extends CustomPainter {
   final int cycleLength;
   final int periodLength;
@@ -377,44 +373,34 @@ class RingCyclePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final outerRadius = size.width / 2 - 10;
-    final innerRadius = outerRadius * 0.6; // Creates ring effect
+    final outerRadius = size.width / 2 - 15;
+    final innerRadius = outerRadius * 0.65; // Thinner ring
     final segmentAngle = 2 * math.pi / cycleLength;
+    final strokeWidth = (outerRadius - innerRadius);
 
-    // Draw ring segments
+    // Draw ring segments with stroke style
     for (int day = 1; day <= cycleLength; day++) {
       final startAngle = (day - 1) * segmentAngle - math.pi / 2;
       final sweepAngle = segmentAngle;
 
       final Color segmentColor = _getRingSegmentColor(day);
 
+      // Create stroke paint for ring segment
       final segmentPaint = Paint()
         ..color = segmentColor
-        ..style = PaintingStyle.fill;
-
-      // Draw outer arc
-      final outerRect = Rect.fromCircle(center: center, radius: outerRadius);
-      canvas.drawArc(outerRect, startAngle, sweepAngle, true, segmentPaint);
-
-      // Draw inner arc (to create ring hole)
-      final innerPaint = Paint()
-        ..color = Colors.white
-        ..style = PaintingStyle.fill;
-
-      final innerRect = Rect.fromCircle(center: center, radius: innerRadius);
-      canvas.drawArc(innerRect, startAngle, sweepAngle, true, innerPaint);
-
-      // Draw segment borders
-      final borderPaint = Paint()
-        ..color = Colors.white.withOpacity(0.8)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1;
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round;
 
-      canvas.drawArc(outerRect, startAngle, sweepAngle, true, borderPaint);
-      canvas.drawArc(innerRect, startAngle, sweepAngle, true, borderPaint);
+      // Draw arc segment (stroke creates ring effect)
+      final rect = Rect.fromCircle(
+        center: center,
+        radius: (outerRadius + innerRadius) / 2,
+      );
+      canvas.drawArc(rect, startAngle, sweepAngle, false, segmentPaint);
 
-      // Draw day numbers
-      _drawRingDayNumber(
+      // Draw day number
+      _drawDayNumber(
         canvas,
         center,
         outerRadius,
@@ -430,24 +416,24 @@ class RingCyclePainter extends CustomPainter {
   }
 
   Color _getRingSegmentColor(int day) {
-    // Ring colors matching expected.jpg
+    // Colors matching screenshot
     if (day <= periodLength) {
-      return const Color(0xFFFF6B9D); // Pink for period
+      return const Color(0xFFFF6B9D); // Pink/coral
     }
     if (day <= periodLength + postPeriodDays) {
-      return const Color(0xFFB19CD9); // Light purple for post-period
+      return const Color(0xFFDDA0DD); // Peach/light purple
     }
     if (day >= ovulationStartDay &&
         day < ovulationStartDay + ovulationWindowDays) {
-      return const Color(0xFF6A5ACD); // Purple for fertility
+      return const Color(0xFF9370DB); // Lavender
     }
     if (day > cycleLength - prePeriodDays) {
-      return const Color(0xFFFFD700); // Yellow for pre-period
+      return const Color(0xFFFFD700); // Yellow
     }
-    return const Color(0xFF87CEEB); // Light blue for rest
+    return const Color(0xFF87CEEB); // Light blue
   }
 
-  void _drawRingDayNumber(
+  void _drawDayNumber(
     Canvas canvas,
     Offset center,
     double outerRadius,
@@ -456,6 +442,11 @@ class RingCyclePainter extends CustomPainter {
     double startAngle,
     double sweepAngle,
   ) {
+    final midRadius = (outerRadius + innerRadius) / 2;
+    final midAngle = startAngle + sweepAngle / 2;
+    final textX = center.dx + midRadius * math.cos(midAngle);
+    final textY = center.dy + midRadius * math.sin(midAngle);
+
     final textPainter = TextPainter(
       text: TextSpan(
         text: '$day',
@@ -467,15 +458,7 @@ class RingCyclePainter extends CustomPainter {
       ),
       textDirection: TextDirection.ltr,
     );
-
     textPainter.layout();
-
-    // Position numbers in the middle of the ring
-    final angle = startAngle + sweepAngle / 2;
-    final textRadius = (outerRadius + innerRadius) / 2;
-    final textX = center.dx + textRadius * math.cos(angle);
-    final textY = center.dy + textRadius * math.sin(angle);
-
     textPainter.paint(
       canvas,
       Offset(textX - textPainter.width / 2, textY - textPainter.height / 2),
@@ -483,45 +466,31 @@ class RingCyclePainter extends CustomPainter {
   }
 
   void _drawCenterText(Canvas canvas, Offset center, double innerRadius) {
-    final textPainter = TextPainter(
-      text: const TextSpan(
-        children: [
-          TextSpan(
-            text: "STAGES OF THE\n",
-            style: TextStyle(
-              color: Color(0xFF2E3192),
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          TextSpan(
-            text: "MENSTRUAL\n",
-            style: TextStyle(
-              color: Color(0xFF2E3192),
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          TextSpan(
-            text: "CYCLE",
-            style: TextStyle(
-              color: Color(0xFF2E3192),
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-      textAlign: TextAlign.center,
-      textDirection: TextDirection.ltr,
+    final textStyle = const TextStyle(
+      color: Color(0xFFFF6B9D),
+      fontSize: 14,
+      fontWeight: FontWeight.bold,
+      height: 1.2,
     );
 
-    textPainter.layout(maxWidth: innerRadius * 1.5);
+    final lines = ["STAGES OF", "THE MENSTRUAL", "CYCLE"];
+    final lineHeight = 16.0;
+    final totalHeight = lines.length * lineHeight;
 
-    final textX = center.dx - textPainter.width / 2;
-    final textY = center.dy - textPainter.height / 2;
+    for (int i = 0; i < lines.length; i++) {
+      final textPainter = TextPainter(
+        text: TextSpan(text: lines[i], style: textStyle),
+        textDirection: TextDirection.ltr,
+      );
+      textPainter.layout(maxWidth: innerRadius * 1.5);
 
-    textPainter.paint(canvas, Offset(textX, textY));
+      final yOffset =
+          center.dy - totalHeight / 2 + i * lineHeight + lineHeight / 2;
+      final textX = center.dx - textPainter.width / 2;
+      final textY = yOffset - textPainter.height / 2;
+
+      textPainter.paint(canvas, Offset(textX, textY));
+    }
   }
 
   @override
