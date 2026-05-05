@@ -775,4 +775,111 @@ class AuthService {
       );
     }
   }
+
+  /// Create a new Recent Post
+  Future<ApiResponse<Map<String, dynamic>>> createRecentPost({
+    required String title,
+    required String content,
+    File? imageFile,
+    String? imageUrl,
+  }) async {
+    try {
+      debugPrint('🔄 Creating Recent Post...');
+      debugPrint('📝 Title: $title');
+      debugPrint('📄 Content: ${content.length} characters');
+      debugPrint('🖼️ Has Image: ${imageFile != null}');
+      debugPrint('🔗 Image URL: $imageUrl');
+
+      // Prepare request body
+      final Map<String, dynamic> requestBody = {
+        'title': title,
+        'content': content,
+      };
+
+      // Add image URL if provided (either from uploaded image or existing URL)
+      if (imageUrl != null && imageUrl.isNotEmpty) {
+        requestBody['image_url'] = imageUrl;
+        debugPrint('📸 Using uploaded image URL: $imageUrl');
+      } else if (imageFile != null) {
+        // Fallback for now - in production this should never happen
+        debugPrint('⚠️ Image file provided but no URL - using placeholder');
+        requestBody['image_url'] = 'https://via.placeholder.com/400x300.png';
+      }
+
+      final response = await _makeRequest<Map<String, dynamic>>(
+        'POST',
+        '/posts',
+        body: requestBody,
+        requiresAuth: true,
+      );
+
+      debugPrint('📊 Create Recent Post response: ${response.data}');
+
+      if (response.success) {
+        debugPrint('✅ Recent Post created successfully');
+        return ApiResponse.success(response.data ?? {});
+      } else {
+        final errorMessage = response.error ?? 'Failed to create recent post';
+        debugPrint('❌ Create Recent Post failed: $errorMessage');
+        return ApiResponse.error(errorMessage);
+      }
+    } catch (e) {
+      debugPrint('❌ Create Recent Post error: $e');
+      return ApiResponse.error('Failed to create recent post: ${e.toString()}');
+    }
+  }
+
+  /// Create a new Cycle Snap
+  Future<ApiResponse<Map<String, dynamic>>> createCycleSnap({
+    required String title,
+    required String description,
+    File? mediaFile,
+    String? mediaUrl,
+  }) async {
+    try {
+      debugPrint('🔄 Creating Cycle Snap...');
+      debugPrint('📝 Title: $title');
+      debugPrint('📄 Description: ${description.length} characters');
+      debugPrint('🎬 Has Media: ${mediaFile != null}');
+      debugPrint('🔗 Media URL: $mediaUrl');
+
+      // Prepare request body
+      final Map<String, dynamic> requestBody = {
+        'title': title,
+        'description': description,
+        'media_type': mediaFile != null ? 'image' : 'text',
+      };
+
+      // Add media URL if provided (either from uploaded media or existing URL)
+      if (mediaUrl != null && mediaUrl.isNotEmpty) {
+        requestBody['media_url'] = mediaUrl;
+        debugPrint('📸 Using uploaded media URL: $mediaUrl');
+      } else if (mediaFile != null) {
+        // Fallback for now - in production this should never happen
+        debugPrint('⚠️ Media file provided but no URL - using placeholder');
+        requestBody['media_url'] = 'https://via.placeholder.com/400x300.png';
+      }
+
+      final response = await _makeRequest<Map<String, dynamic>>(
+        'POST',
+        '/cycle-snaps',
+        body: requestBody,
+        requiresAuth: true,
+      );
+
+      debugPrint('📊 Create Cycle Snap response: ${response.data}');
+
+      if (response.success) {
+        debugPrint('✅ Cycle Snap created successfully');
+        return ApiResponse.success(response.data ?? {});
+      } else {
+        final errorMessage = response.error ?? 'Failed to create cycle snap';
+        debugPrint('❌ Create Cycle Snap failed: $errorMessage');
+        return ApiResponse.error(errorMessage);
+      }
+    } catch (e) {
+      debugPrint('❌ Create Cycle Snap error: $e');
+      return ApiResponse.error('Failed to create cycle snap: ${e.toString()}');
+    }
+  }
 }

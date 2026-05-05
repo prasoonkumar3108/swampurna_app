@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'create_post_screen.dart';
 
 // --- Improved Models for API Data ---
 class BlogModel {
@@ -93,10 +94,23 @@ class _CommunityScreenState extends State<CommunityScreen>
   final Color accentOrange = const Color(0xFFFFA000);
   final String placeholder = "https://via.placeholder.com/150";
 
+  // Keys to force FutureBuilder refresh
+  int _postsRefreshKey = 0;
+  int _snapsRefreshKey = 0;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+  }
+
+  // Refresh method to trigger data reload
+  void _refreshData() {
+    // Force FutureBuilder to rebuild by incrementing keys
+    setState(() {
+      _postsRefreshKey++;
+      _snapsRefreshKey++;
+    });
   }
 
   // --- API Fetch Methods ---
@@ -329,9 +343,13 @@ class _CommunityScreenState extends State<CommunityScreen>
   Widget _buildRecentPostTab() {
     return Column(
       children: [
-        _buildSubmissionBar("Submit your post here for review"),
+        _buildSubmissionBar(
+          "Submit your post here for review",
+          postType: PostType.recentPost,
+        ),
         Expanded(
           child: FutureBuilder<List<PostModel>>(
+            key: ValueKey('posts_$_postsRefreshKey'),
             future: fetchPosts(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting)
@@ -406,7 +424,7 @@ class _CommunityScreenState extends State<CommunityScreen>
           ),
 
           // Media Image - Full width
-          if (post.imageUrl.isNotEmpty)
+          if (post.imageUrl.isNotEmpty && post.imageUrl != placeholder)
             CachedNetworkImage(
               imageUrl: post.imageUrl,
               width: double.infinity,
@@ -418,16 +436,21 @@ class _CommunityScreenState extends State<CommunityScreen>
                 color: Colors.grey[200],
                 child: const Center(child: CircularProgressIndicator()),
               ),
-              errorWidget: (context, url, error) => Container(
-                width: double.infinity,
-                height: 200,
-                color: Colors.grey[200],
-                child: const Icon(Icons.image, size: 40),
-              ),
+              errorWidget: (context, url, error) {
+                debugPrint(
+                  'Recent Post image load error: $error for URL: $url',
+                );
+                return Container(
+                  width: double.infinity,
+                  height: 200,
+                  color: Colors.grey[200],
+                  child: const Icon(Icons.broken_image, size: 40),
+                );
+              },
             ),
 
           // Action Row - Transparent icons
-          if (post.imageUrl.isNotEmpty)
+          if (post.imageUrl.isNotEmpty && post.imageUrl != placeholder)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
@@ -542,9 +565,13 @@ class _CommunityScreenState extends State<CommunityScreen>
   Widget _buildSnapGrid(Future<List<SnapModel>> future) {
     return Column(
       children: [
-        _buildSubmissionBar("Submit your snap here for review"),
+        _buildSubmissionBar(
+          "Submit your snap here for review",
+          postType: PostType.cycleSnap,
+        ),
         Expanded(
           child: FutureBuilder<List<SnapModel>>(
+            key: ValueKey('snaps_$_snapsRefreshKey'),
             future: future,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting)
@@ -588,7 +615,8 @@ class _CommunityScreenState extends State<CommunityScreen>
                           child: CachedNetworkImage(
                             imageUrl:
                                 (snap.mediaUrl.isNotEmpty &&
-                                    snap.mediaUrl != 'null')
+                                    snap.mediaUrl != 'null' &&
+                                    snap.mediaUrl != placeholder)
                                 ? snap.mediaUrl
                                 : placeholder,
                             fit: BoxFit.cover,
@@ -602,11 +630,11 @@ class _CommunityScreenState extends State<CommunityScreen>
                             ),
                             errorWidget: (context, url, error) {
                               debugPrint(
-                                'Image load error: $error for URL: ${snap.mediaUrl}',
+                                'Cycle Snap image load error: $error for URL: ${snap.mediaUrl}',
                               );
                               return Container(
                                 color: Colors.grey[300],
-                                child: const Icon(Icons.image, size: 40),
+                                child: const Icon(Icons.broken_image, size: 40),
                               );
                             },
                           ),
@@ -800,7 +828,7 @@ class _CommunityScreenState extends State<CommunityScreen>
     );
   }
 
-  Widget _buildSubmissionBar(String hint) {
+  Widget _buildSubmissionBar(String hint, {PostType? postType}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
@@ -809,9 +837,20 @@ class _CommunityScreenState extends State<CommunityScreen>
             child: Text(hint, style: TextStyle(color: navyBlue, fontSize: 13)),
           ),
           ElevatedButton(
-            onPressed: () {
-              print('Post button clicked for: $hint');
-              // TODO: Implement post submission logic
+            onPressed: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CreatePostScreen(
+                    postType: postType ?? PostType.recentPost,
+                  ),
+                ),
+              );
+
+              // If post was created successfully, refresh the data
+              if (result == true) {
+                _refreshData();
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: navyBlue,
