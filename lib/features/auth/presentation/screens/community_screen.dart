@@ -54,10 +54,11 @@ class PostModel {
 }
 
 class SnapModel {
-  final String mediaUrl, type, title, description;
+  final String id, mediaUrl, type, title, description;
   final String? authorEmail;
 
   SnapModel({
+    required this.id,
     required this.mediaUrl,
     required this.type,
     required this.title,
@@ -67,6 +68,7 @@ class SnapModel {
 
   factory SnapModel.fromJson(Map<String, dynamic> json) {
     return SnapModel(
+      id: json['id'] ?? '',
       mediaUrl: json['media_url'] ?? '',
       type: json['media_type'] ?? 'image',
       title: json['title'] ?? 'Cycle Snap',
@@ -175,10 +177,21 @@ class _CommunityScreenState extends State<CommunityScreen>
       if (response.statusCode == 200) {
         final jsonData = json.decode(response.body);
         debugPrint('Snaps JSON: $jsonData');
-        if (jsonData.containsKey('data')) {
+        if (jsonData.containsKey('data') && jsonData['data'] != null) {
           List data = jsonData['data'];
-          return data.map((json) => SnapModel.fromJson(json)).toList();
+          if (data.isNotEmpty) {
+            return data.map((json) => SnapModel.fromJson(json)).toList();
+          } else {
+            debugPrint('Snaps data array is empty');
+            return [];
+          }
+        } else {
+          debugPrint('No data key found in response');
+          return [];
         }
+      } else {
+        debugPrint('Snaps API failed with status: ${response.statusCode}');
+        debugPrint('Response body: ${response.body}');
       }
       throw Exception('Failed to load snaps: ${response.statusCode}');
     } catch (e) {
@@ -199,7 +212,7 @@ class _CommunityScreenState extends State<CommunityScreen>
       extendBody: false,
       extendBodyBehindAppBar: false,
       body: SafeArea(
-        bottom: true, // Explicitly ensure bottom padding
+        bottom: false, // Don't add bottom padding since extendBody is true
         child: Column(
           children: [
             _buildCustomTabBar(),
@@ -573,9 +586,11 @@ class _CommunityScreenState extends State<CommunityScreen>
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12),
                           child: CachedNetworkImage(
-                            imageUrl: snap.mediaUrl.isEmpty
-                                ? placeholder
-                                : snap.mediaUrl,
+                            imageUrl:
+                                (snap.mediaUrl.isNotEmpty &&
+                                    snap.mediaUrl != 'null')
+                                ? snap.mediaUrl
+                                : placeholder,
                             fit: BoxFit.cover,
                             width: double.infinity,
                             height: double.infinity,
@@ -637,7 +652,9 @@ class _CommunityScreenState extends State<CommunityScreen>
                               ],
                             ),
                             child: Text(
-                              snap.title,
+                              (snap.title.isNotEmpty && snap.title != 'null')
+                                  ? snap.title
+                                  : 'Cycle Snap',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 11,
@@ -688,7 +705,8 @@ class _CommunityScreenState extends State<CommunityScreen>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              if (snap.description.isNotEmpty)
+                              if (snap.description.isNotEmpty &&
+                                  snap.description != 'null')
                                 Container(
                                   margin: const EdgeInsets.only(bottom: 4),
                                   child: Text(

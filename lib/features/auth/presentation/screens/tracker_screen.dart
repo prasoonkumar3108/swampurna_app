@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../../core/services/auth_service.dart';
 
 // Keep these only if the files exist, otherwise the consolidated classes below take over
@@ -274,19 +275,35 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Set system UI overlay style to prevent system navigation bar interference
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        systemNavigationBarColor:
+            Colors.transparent, // Make system nav bar transparent
+        systemNavigationBarDividerColor: Colors.transparent, // Remove divider
+        systemNavigationBarIconBrightness:
+            Brightness.dark, // Dark icons for light theme
+      ),
+    );
+
+    // Enable edge-to-edge mode to ensure app draws behind system bars correctly
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
     return Scaffold(
       backgroundColor: _currentIndex == 3 ? const Color(0xFF121212) : bgColor,
-      body: SafeArea(
-        child: IndexedStack(
-          index: _currentIndex,
-          children: [
-            _buildTrackerUI(), // Index 0
-            const CommunityScreen(), // Index 1
-            const CommunityContentScreen(), // Index 2
-            const LiveStreamScreen(), // Index 3
-            const SettingsScreen(), // Index 4
-          ],
-        ),
+      extendBody:
+          true, // Allow body to extend behind bottom nav bar with rounded corners
+      resizeToAvoidBottomInset:
+          false, // Prevent keyboard/system bars from pushing UI up
+      body: IndexedStack(
+        index: _currentIndex,
+        children: [
+          _buildTrackerUI(), // Index 0
+          const CommunityScreen(), // Index 1
+          const CommunityContentScreen(), // Index 2
+          const LiveStreamScreen(), // Index 3
+          const SettingsScreen(), // Index 4
+        ],
       ),
       floatingActionButton: _currentIndex == 0
           ? Padding(
@@ -641,36 +658,47 @@ class _TrackerScreenState extends State<TrackerScreen> {
   }
 
   Widget _buildBottomNavigationBar() {
-    return Container(
-      height: 80,
-      decoration: BoxDecoration(
-        color: navyBlue,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(30),
-          topRight: Radius.circular(30),
-        ),
+    return ClipRRect(
+      borderRadius: const BorderRadius.only(
+        topLeft: Radius.circular(30),
+        topRight: Radius.circular(30),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _navIcon(Icons.home_outlined, 0),
-          _navIcon(Icons.calendar_month, 1),
-          _navIcon(Icons.book_outlined, 2),
-          _navIcon(Icons.workspace_premium_outlined, 3),
-          _navIcon(Icons.person_outline, 4),
-        ],
+      child: Container(
+        decoration: BoxDecoration(
+          color: navyBlue,
+          boxShadow: [], // Remove any shadow
+        ),
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).padding.bottom,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _navIcon(Icons.home_outlined, 0),
+              _navIcon(Icons.calendar_month, 1),
+              _navIcon(Icons.book_outlined, 2),
+              _navIcon(Icons.workspace_premium_outlined, 3),
+              _navIcon(Icons.person_outline, 4),
+            ],
+          ),
+        ),
       ),
     );
   }
 
   Widget _navIcon(IconData icon, int index) {
     bool isActive = _currentIndex == index;
-    return IconButton(
-      onPressed: () => setState(() => _currentIndex = index),
-      icon: Icon(
-        icon,
-        color: isActive ? Colors.orange : Colors.white,
-        size: 30,
+    return InkWell(
+      onTap: () => setState(() => _currentIndex = index),
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Icon(
+          icon,
+          color: isActive ? Colors.orange : Colors.white,
+          size: 30,
+        ),
       ),
     );
   }
