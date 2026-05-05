@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'confirmation_screen.dart';
 import 'login_with_pin_screen.dart';
 import 'mobile_input_screen.dart';
+import '../models/onboarding_data.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../core/services/token_storage_service.dart';
 
@@ -125,12 +127,29 @@ class _OtpScreenState extends State<OtpScreen> {
             ),
           );
 
-          // Navigate back to mobile_input_screen
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (_) => const MobileInputScreen()),
-            (route) => false,
-          );
+          // Conditional navigation based on isFromSignup
+          if (widget.isFromSignup) {
+            // Case 1: From signup - navigate to MobileInputScreen
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const MobileInputScreen()),
+              (route) => false,
+            );
+          } else {
+            // Case 2: From login - navigate to ConfirmationScreen
+            final otp = _otpControllers.map((c) => c.text).join();
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ConfirmationScreen(
+                  onboardingData: OnboardingData(
+                    email: widget.email,
+                    otp: otp, // Use the verified OTP
+                  ),
+                ),
+              ),
+            );
+          }
         } else {
           setState(() {
             _errorMessage = response.error ?? 'Invalid OTP. Please try again.';
@@ -340,9 +359,9 @@ class _OtpScreenState extends State<OtpScreen> {
                               ),
                               elevation: 4,
                             ),
-                            child: const Text(
-                              'Login',
-                              style: TextStyle(
+                            child: Text(
+                              widget.isFromSignup ? 'Verify' : 'Login',
+                              style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white,

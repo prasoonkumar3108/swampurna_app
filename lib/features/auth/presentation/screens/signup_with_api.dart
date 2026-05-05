@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'confirmation_screen.dart';
-import '../../../core/network/simple_api_client.dart';
 
 class SignupWithApiScreen extends StatefulWidget {
   const SignupWithApiScreen({super.key});
@@ -168,7 +167,7 @@ class _SignupWithApiScreenState extends State<SignupWithApiScreen> {
                       const SizedBox(height: 6),
                       _inputBox(
                         controller: _dob,
-                        hint: "18/03/2024",
+                        hint: "Select DOB",
                         onTap: _pickDate,
                         suffix: const Icon(Icons.calendar_today, size: 18),
                       ),
@@ -184,7 +183,7 @@ class _SignupWithApiScreenState extends State<SignupWithApiScreen> {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      _inputBox(controller: _name, hint: "Lois Becket"),
+                      _inputBox(controller: _name, hint: "Enter name"),
 
                       const SizedBox(height: 18),
 
@@ -197,10 +196,7 @@ class _SignupWithApiScreenState extends State<SignupWithApiScreen> {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      _inputBox(
-                        controller: _email,
-                        hint: "loisbecket@gmail.com",
-                      ),
+                      _inputBox(controller: _email, hint: "Enter email"),
 
                       const SizedBox(height: 18),
 
@@ -379,7 +375,7 @@ class _SignupWithApiScreenState extends State<SignupWithApiScreen> {
                 controller: _phone,
                 keyboardType: TextInputType.phone,
                 decoration: const InputDecoration(
-                  hintText: "(454) 726-0592",
+                  hintText: "Enter phone number",
                   border: InputBorder.none,
                 ),
               ),

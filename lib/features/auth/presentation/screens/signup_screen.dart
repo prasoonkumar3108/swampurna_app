@@ -196,7 +196,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       const SizedBox(height: 6),
                       _inputBox(
                         controller: _dob,
-                        hint: "18/03/2024",
+                        hint: "Select DOB",
                         readOnly: true,
                         onTap: _pickDate,
                         suffix: const Icon(Icons.calendar_today, size: 18),
@@ -207,17 +207,14 @@ class _SignupScreenState extends State<SignupScreen> {
                       /// NAME
                       _fieldTitle("Full Name"),
                       const SizedBox(height: 6),
-                      _inputBox(controller: _name, hint: "Lois Becket"),
+                      _inputBox(controller: _name, hint: "Enter your name"),
 
                       const SizedBox(height: 18),
 
                       /// EMAIL
                       _fieldTitle("Email (optional)"),
                       const SizedBox(height: 6),
-                      _inputBox(
-                        controller: _email,
-                        hint: "loisbecket@gmail.com",
-                      ),
+                      _inputBox(controller: _email, hint: "Enter your email"),
 
                       const SizedBox(height: 18),
 
@@ -415,7 +412,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 controller: _phone,
                 keyboardType: TextInputType.phone,
                 decoration: const InputDecoration(
-                  hintText: "(454) 726-0592",
+                  hintText: "Enter your phone number",
                   border: InputBorder.none,
                 ),
               ),
