@@ -33,6 +33,15 @@ class _SignupScreenState extends State<SignupScreen> {
     super.dispose();
   }
 
+  @override
+  void initState() {
+    super.initState();
+    // Ensure DOB controller is initially empty to show hint
+    if (_dob.text.isNotEmpty) {
+      _dob.clear();
+    }
+  }
+
   void _onContinue() async {
     // Validate required fields
     if (_name.text.trim().isEmpty ||
@@ -372,6 +381,8 @@ class _SignupScreenState extends State<SignupScreen> {
               decoration: InputDecoration(
                 hintText: hint,
                 border: InputBorder.none,
+                floatingLabelBehavior: FloatingLabelBehavior.never,
+                hintStyle: const TextStyle(color: Colors.grey, fontSize: 16),
               ),
             ),
           ),
