@@ -5,6 +5,8 @@ import '../../../../core/services/auth_service.dart';
 // Keep these only if the files exist, otherwise the consolidated classes below take over
 import 'customize_period_screen.dart';
 import 'community_screen.dart';
+import 'settings_screen.dart';
+// (Yahan apni settings file ka sahi path likhein)
 
 // --- Models ---
 class CalendarDay {
@@ -302,7 +304,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
           const CommunityScreen(), // Index 1
           const CommunityContentScreen(), // Index 2
           const LiveStreamScreen(), // Index 3
-          const SettingsScreen(), // Index 4
+          SettingsScreen(), // Index 4
         ],
       ),
       floatingActionButton: _currentIndex == 0
@@ -801,43 +803,4 @@ class LiveStreamScreen extends StatelessWidget {
       ),
     );
   }
-}
-
-class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key});
-  @override
-  Widget build(BuildContext context) {
-    final Color navyBlue = const Color(0xFF1E1E5F);
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        const Center(
-          child: Text(
-            "Settings",
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1E1E5F),
-            ),
-          ),
-        ),
-        const SizedBox(height: 20),
-        _item(Icons.person, "Profile", navyBlue),
-        _item(Icons.notifications, "Notifications", navyBlue),
-        _item(Icons.lock, "Privacy", navyBlue),
-        _item(Icons.help, "Help", navyBlue),
-        const Divider(),
-        _item(Icons.logout, "Logout", Colors.red),
-      ],
-    );
-  }
-
-  Widget _item(IconData i, String t, Color c) => ListTile(
-    leading: Icon(i, color: c),
-    title: Text(
-      t,
-      style: TextStyle(color: c, fontWeight: FontWeight.bold),
-    ),
-    trailing: const Icon(Icons.chevron_right),
-  );
 }

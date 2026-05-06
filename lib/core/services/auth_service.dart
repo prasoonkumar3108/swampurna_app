@@ -79,6 +79,7 @@ class AuthService {
     String method,
     String endpoint, {
     Map<String, dynamic>? body,
+    Map<String, String>? queryParams,
     Map<String, String>? headers,
     bool requiresAuth = true,
     bool useCorsProxy = kIsWeb, // Only enable CORS proxy for web development
@@ -87,6 +88,13 @@ class AuthService {
       // Build URL
       String cleanEndpoint = endpoint.startsWith('/') ? endpoint : '/$endpoint';
       String url = '${ApiConfig.baseUrl}$cleanEndpoint';
+
+      // Add query parameters if provided
+      if (queryParams != null && queryParams.isNotEmpty) {
+        final uri = Uri.parse(url);
+        final uriWithQuery = uri.replace(queryParameters: queryParams);
+        url = uriWithQuery.toString();
+      }
 
       // CORS Proxy for Web Development Only
       if (useCorsProxy) {
@@ -505,6 +513,75 @@ class AuthService {
     return await TokenStorageService.instance.hasValidLoginSession();
   }
 
+  /// Fetch notification settings
+  Future<ApiResponse<Map<String, dynamic>>> getNotificationSettings() async {
+    try {
+      final response = await _makeRequest<Map<String, dynamic>>(
+        'GET',
+        '/notifications/settings',
+      );
+
+      if (response.success && response.data != null) {
+        debugPrint('✅ Notification settings fetched successfully');
+        return response;
+      } else {
+        debugPrint(
+          '❌ Failed to fetch notification settings: ${response.error}',
+        );
+        return response;
+      }
+    } catch (e) {
+      debugPrint('❌ Error fetching notification settings: $e');
+      return ApiResponse<Map<String, dynamic>>(
+        success: false,
+        error: 'Failed to fetch notification settings: $e',
+        data: null,
+      );
+    }
+  }
+
+  /// Update notification settings
+  Future<ApiResponse<Map<String, dynamic>>> updateNotificationSettings({
+    required bool periodReminderEnabled,
+    required bool ovulationReminderEnabled,
+    required bool dailyInsightsEnabled,
+    required bool dailyPeriodReminderEnabled,
+    required bool appUpdatesEnabled,
+  }) async {
+    try {
+      final Map<String, dynamic> body = {
+        'period_reminder_enabled': periodReminderEnabled,
+        'ovulation_reminder_enabled': ovulationReminderEnabled,
+        'daily_insights_enabled': dailyInsightsEnabled,
+        'daily_period_reminder_enabled': dailyPeriodReminderEnabled,
+        'app_updates_enabled': appUpdatesEnabled,
+      };
+
+      final response = await _makeRequest<Map<String, dynamic>>(
+        'PUT',
+        '/notifications/settings',
+        body: body,
+      );
+
+      if (response.success && response.data != null) {
+        debugPrint('✅ Notification settings updated successfully');
+        return response;
+      } else {
+        debugPrint(
+          '❌ Failed to update notification settings: ${response.error}',
+        );
+        return response;
+      }
+    } catch (e) {
+      debugPrint('❌ Error updating notification settings: $e');
+      return ApiResponse<Map<String, dynamic>>(
+        success: false,
+        error: 'Failed to update notification settings: $e',
+        data: null,
+      );
+    }
+  }
+
   /// Login with PIN
   Future<ApiResponse<Map<String, dynamic>>> loginWithPIN({
     required String email,
@@ -880,6 +957,73 @@ class AuthService {
     } catch (e) {
       debugPrint('❌ Create Cycle Snap error: $e');
       return ApiResponse.error('Failed to create cycle snap: ${e.toString()}');
+    }
+  }
+
+  /// Get Jan Aushadhi Kendras
+  Future<ApiResponse<dynamic>> getJanAushadhiKendras({
+    String? state,
+    String? district,
+    String? pin,
+    String? name,
+    int? limit,
+    int? offset,
+  }) async {
+    try {
+      debugPrint('🔍 Fetching Jan Aushadhi Kendras...');
+      debugPrint('📍 State: $state');
+      debugPrint('🏛️ District: $district');
+      debugPrint('📮 Pin Code: $pin');
+      debugPrint('👤 Name: $name');
+      debugPrint('📊 Limit: $limit');
+      debugPrint('📍 Offset: $offset');
+
+      // Build query parameters
+      final Map<String, String> queryParams = {};
+      if (state != null && state.isNotEmpty) queryParams['state'] = state;
+      if (district != null && district.isNotEmpty)
+        queryParams['district'] = district;
+      if (pin != null && pin.isNotEmpty) queryParams['pin'] = pin;
+      if (name != null && name.isNotEmpty) queryParams['name'] = name;
+      if (limit != null) queryParams['limit'] = limit.toString();
+      if (offset != null) queryParams['offset'] = offset.toString();
+
+      debugPrint(
+        '🌐 Full Request URL: ${ApiConfig.baseUrl}/jan-aushadhi-kendras',
+      );
+
+      final response = await _makeRequest<Map<String, dynamic>>(
+        'GET',
+        '/jan-aushadhi-kendras',
+        queryParams: queryParams,
+        requiresAuth: true,
+      );
+
+      debugPrint('📊 Kendras response: ${response.data}');
+
+      if (response.success) {
+        debugPrint('✅ Jan Aushadhi Kendras fetched successfully');
+
+        // Do NOT cast the whole response to a List
+        // If ApiResponse wraps the data, access it safely
+        final rawData = response.data as Map<String, dynamic>?;
+        if (rawData != null) {
+          final kendrasList = rawData['data'];
+          debugPrint('API Result count: ${kendrasList?.length ?? 0}');
+          return ApiResponse.success(kendrasList); // This is the actual List
+        }
+        return ApiResponse.success([]); // Return empty list as fallback
+      } else {
+        final errorMessage =
+            response.error ?? 'Failed to fetch Jan Aushadhi Kendras';
+        debugPrint('❌ Fetch Kendras failed: $errorMessage');
+        return ApiResponse.error(errorMessage);
+      }
+    } catch (e) {
+      debugPrint('❌ Fetch Kendras error: $e');
+      return ApiResponse.error(
+        'Failed to fetch Jan Aushadhi Kendras: ${e.toString()}',
+      );
     }
   }
 }

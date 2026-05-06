@@ -15,6 +15,7 @@ dependencies:
   http: ^1.6.0 # <--- API calls ke liye added
   cached_network_image: ^3.3.1 # <--- Image caching ke liye added
   image_picker: ^1.0.7 # <--- Image picking ke liye added
+  url_launcher: ^6.2.4 # <--- Google Maps integration ke liye added
 
 dev_dependencies:
   flutter_test:

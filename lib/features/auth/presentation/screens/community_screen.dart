@@ -5,15 +5,22 @@ import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'create_post_screen.dart';
+import 'blog_detail_screen.dart';
 
 // --- Improved Models for API Data ---
 class BlogModel {
-  final String title, date, imageUrl, category;
+  final String title, date, imageUrl, category, slug;
+  final String? content;
+  final String? authorName;
+
   BlogModel({
     required this.title,
     required this.date,
     required this.imageUrl,
     required this.category,
+    required this.slug,
+    this.content,
+    this.authorName,
   });
 
   factory BlogModel.fromJson(Map<String, dynamic> json) {
@@ -26,6 +33,9 @@ class BlogModel {
             ).format(DateTime.parse(json['created_at']))
           : 'Recent',
       imageUrl: json['image_url'] ?? '',
+      slug: json['slug'] ?? '',
+      content: json['content'],
+      authorName: json['author_name'],
     );
   }
 }
@@ -277,65 +287,77 @@ class _CommunityScreenState extends State<CommunityScreen>
 
   // --- Item Builders ---
   Widget _buildBlogItem(BlogModel blog) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Image.network(
-            blog.imageUrl.isEmpty ? placeholder : blog.imageUrl,
-            width: 80,
-            height: 80,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => Container(
+    return GestureDetector(
+      onTap: () {
+        if (blog.slug.isNotEmpty) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BlogDetailScreen(slug: blog.slug),
+            ),
+          );
+        }
+      },
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.network(
+              blog.imageUrl.isEmpty ? placeholder : blog.imageUrl,
               width: 80,
               height: 80,
-              color: Colors.grey[300],
-              child: const Icon(Icons.image),
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                width: 80,
+                height: 80,
+                color: Colors.grey[300],
+                child: const Icon(Icons.image),
+              ),
             ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        blog.category,
+                        style: TextStyle(fontSize: 10, color: navyBlue),
+                      ),
                     ),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(4),
+                    Text(
+                      blog.date,
+                      style: const TextStyle(fontSize: 10, color: Colors.grey),
                     ),
-                    child: Text(
-                      blog.category,
-                      style: TextStyle(fontSize: 10, color: navyBlue),
-                    ),
-                  ),
-                  Text(
-                    blog.date,
-                    style: const TextStyle(fontSize: 10, color: Colors.grey),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                blog.title,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: navyBlue,
-                  fontSize: 14,
+                  ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 8),
+                Text(
+                  blog.title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: navyBlue,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
