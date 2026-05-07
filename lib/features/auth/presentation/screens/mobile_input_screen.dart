@@ -213,7 +213,7 @@ class _MobileInputScreenState extends State<MobileInputScreen> {
                     // Handle Skip logic
                   },
                   child: const Text(
-                    'Skip',
+                    '',
                     style: TextStyle(
                       color: _primaryColor,
                       fontSize: 18,

@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:dio/dio.dart';
+import '../../../../core/services/token_storage_service.dart';
 
 class ReportProblemScreen extends StatefulWidget {
   const ReportProblemScreen({super.key});
@@ -402,21 +405,79 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     });
 
     try {
-      // TODO: Implement actual report submission API call
-      await Future.delayed(const Duration(seconds: 2)); // Simulate API call
+      // Create Dio instance
+      final dio = Dio();
 
+      // Get auth token
+      final token = await TokenStorageService.instance.getToken();
+
+      // Create FormData for multipart request
+      final selectedIssueTypes = _selectedCategories
+          .map((cat) => '"$cat"')
+          .toList();
+      final issueTypesJson = '[$selectedIssueTypes]';
+
+      print(
+        "🚀 [REPORT REQUEST] Body: ${{'issue_types': issueTypesJson, 'details': _detailsController.text.trim(), 'has_file': _selectedFiles.isNotEmpty}}",
+      );
+
+      FormData formData = FormData.fromMap({
+        "issue_types": issueTypesJson,
+        "details": _detailsController.text.trim(),
+        if (_selectedFiles.isNotEmpty)
+          "file": await MultipartFile.fromFile(
+            _selectedFiles.first.path,
+            filename: "report_image.jpg",
+          ),
+      });
+
+      // Make API call
+      final response = await dio.post(
+        'https://swampurna-final-production.up.railway.app/api/v1/support/reports',
+        data: formData,
+        options: Options(
+          headers: {
+            if (token != null) 'Authorization': 'Bearer $token',
+            'Content-Type': 'multipart/form-data',
+          },
+        ),
+      );
+
+      // Check response status
+      print("✅ [REPORT RESPONSE] Status: ${response.statusCode}");
+      print("📦 [REPORT RESPONSE] Data: ${jsonEncode(response.data)}");
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Report submitted successfully! We\'ll look into it.',
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context);
+        }
+      } else {
+        throw Exception('Failed to submit report: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      print(
+        "❌ [REPORT ERROR] DioException: ${e.response?.data?['message'] ?? e.message}",
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'Report submitted successfully! We\'ll look into it.',
+              'Error submitting report: ${e.response?.data?['message'] ?? e.message}',
             ),
-            backgroundColor: Colors.green,
+            backgroundColor: Colors.red,
           ),
         );
-        Navigator.pop(context);
       }
     } catch (e) {
+      print("❌ [REPORT ERROR] General Exception: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

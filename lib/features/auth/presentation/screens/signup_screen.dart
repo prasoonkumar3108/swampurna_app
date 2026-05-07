@@ -221,7 +221,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       const SizedBox(height: 18),
 
                       /// EMAIL
-                      _fieldTitle("Email (optional)"),
+                      _fieldTitle("Email"),
                       const SizedBox(height: 6),
                       _inputBox(controller: _email, hint: "Enter your email"),
 
@@ -231,17 +231,6 @@ class _SignupScreenState extends State<SignupScreen> {
                       _fieldTitle("Phone Number"),
                       const SizedBox(height: 6),
                       _phoneField(),
-
-                      const SizedBox(height: 18),
-
-                      /// PASSWORD
-                      _fieldTitle("Password"),
-                      const SizedBox(height: 6),
-                      _inputBox(
-                        controller: _password,
-                        hint: "Enter password",
-                        obscureText: true,
-                      ),
 
                       const SizedBox(height: 30),
                     ],

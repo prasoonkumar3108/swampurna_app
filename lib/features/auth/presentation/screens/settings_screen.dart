@@ -4,6 +4,7 @@ import 'edit_profile_screen.dart';
 import 'notification_settings_screen.dart';
 import 'report_problem_screen.dart';
 import 'jan_aushadhi_search_screen.dart';
+import 'common_webview_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -237,7 +238,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
         break;
 
       case 'privacy':
-      case 'help':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const CommonWebViewScreen(
+              url: 'https://swampurna-final.vercel.app/Privacypolicy',
+              title: 'Privacy Policy',
+            ),
+          ),
+        );
+        break;
+
+      case 'terms':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const CommonWebViewScreen(
+              url: 'https://swampurna-final.vercel.app/Termsconditions',
+              title: 'Terms & Conditions',
+            ),
+          ),
+        );
+        break;
+
       case 'stores':
         Navigator.push(
           context,
@@ -246,8 +269,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         );
         break;
-      case 'terms':
+
+      case 'help':
       case 'delete':
+        // Disable irrelevant clicks - no action
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Coming Soon'),
