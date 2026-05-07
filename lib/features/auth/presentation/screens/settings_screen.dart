@@ -5,6 +5,7 @@ import 'notification_settings_screen.dart';
 import 'report_problem_screen.dart';
 import 'jan_aushadhi_search_screen.dart';
 import 'common_webview_screen.dart';
+import 'mobile_input_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -18,6 +19,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final Color navyBlue = const Color(0xFF1E1E5F);
   final Color scaffoldBg = const Color(0xFFE1F5F3);
   final Color cardBg = const Color(0xFFD1EBEA);
+
+  bool _isLoggingOut = false;
 
   @override
   Widget build(BuildContext context) {
@@ -316,30 +319,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             TextButton(
               onPressed: () async {
+                if (_isLoggingOut) return; // Prevent multiple clicks
+
                 Navigator.of(context).pop();
-                try {
-                  await AuthService().logout();
-                  if (mounted) {
-                    Navigator.of(
-                      context,
-                    ).pushNamedAndRemoveUntil('/splash', (route) => false);
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error logging out: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
+                await _performLogout();
               },
               child: const Text('Log Out', style: TextStyle(color: Colors.red)),
             ),
           ],
         );
       },
+    );
+  }
+
+  Future<void> _performLogout() async {
+    setState(() => _isLoggingOut = true);
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 20),
+              Text('Logging out...'),
+            ],
+          ),
+        );
+      },
+    );
+
+    try {
+      await AuthService().logout();
+      print("✅ Logout Success: Session cleared");
+    } catch (e) {
+      print("❌ Logout Error: $e");
+    } finally {
+      if (mounted) {
+        // 1. Pehle loading dialog ko band karein
+        if (Navigator.canPop(context)) {
+          Navigator.of(context, rootNavigator: true).pop();
+        }
+        setState(() => _isLoggingOut = false);
+      }
+      // 2. Clear stack and push to login
+      if (mounted) {
+        _navigateToLogin();
+      }
+    }
+  }
+
+  void _navigateToLogin() {
+    // Clear stack and push to mobile_input screen directly
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const MobileInputScreen()),
+      (route) => false,
     );
   }
 

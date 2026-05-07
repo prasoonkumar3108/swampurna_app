@@ -46,9 +46,8 @@ class _JanAushadhiSearchScreenState extends State<JanAushadhiSearchScreen> {
       );
 
       if (response.success && response.data != null) {
-        // Type-safe list mapping to avoid casting issues
-        final fetchedData = response.data;
-        final List<dynamic> kendras = List<dynamic>.from(fetchedData ?? []);
+        // AuthService already returns the correct data['data'] which is the List
+        final List<dynamic> kendras = List<dynamic>.from(response.data ?? []);
 
         setState(() {
           _kendras = kendras

@@ -501,11 +501,38 @@ class AuthService {
   /// Logout user and clear session
   Future<void> logout() async {
     try {
-      await TokenStorageService.instance.logout();
-      debugPrint('✅ User logged out successfully');
+      debugPrint('🚀 [LOGOUT REQUEST] Sending token to API...');
+
+      // Nuclear session wipe - clear local storage immediately before API call
+      debugPrint('💥 [NUCLEAR WIPE] Clearing all local storage immediately...');
+      await TokenStorageService.instance.clearAll();
+      debugPrint(
+        '✅ [NUCLEAR WIPE] All credentials (token/password/user_data) destroyed',
+      );
+
+      // Call logout API with the still-valid token
+      final response = await _makeRequest<Map<String, dynamic>>(
+        'POST',
+        '/auth/logout',
+        requiresAuth: true,
+      );
+
+      if (response.success) {
+        debugPrint(
+          '✅ [LOGOUT RESPONSE] Session cleared on server. Postman: {"ok": true}',
+        );
+      } else {
+        debugPrint(
+          '⚠️ [LOGOUT WARNING] API failed but local session already wiped: ${response.error}',
+        );
+      }
     } catch (e) {
-      debugPrint('❌ Error during logout: $e');
+      debugPrint('❌ [LOGOUT ERROR] Network error: $e');
+      debugPrint(
+        '⚠️ [LOGOUT WARNING] Local session already wiped despite API failure...',
+      );
     }
+    // Note: No finally block needed since we already cleared storage immediately
   }
 
   /// Check if user is logged in
