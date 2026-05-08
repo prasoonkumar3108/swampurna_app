@@ -5,6 +5,8 @@ import '../../../../core/services/auth_service.dart';
 // Keep these only if the files exist, otherwise the consolidated classes below take over
 import 'customize_period_screen.dart';
 import 'community_screen.dart';
+import 'dynamic_community_screen.dart';
+import 'live_stream_screen.dart';
 import 'settings_screen.dart';
 // (Yahan apni settings file ka sahi path likhein)
 
@@ -302,7 +304,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
         children: [
           _buildTrackerUI(), // Index 0
           const CommunityScreen(), // Index 1
-          const CommunityContentScreen(), // Index 2
+          const DynamicCommunityScreen(), // Index 2
           const LiveStreamScreen(), // Index 3
           SettingsScreen(), // Index 4
         ],
