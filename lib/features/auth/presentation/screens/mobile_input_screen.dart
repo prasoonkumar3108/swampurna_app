@@ -21,151 +21,151 @@ class _MobileInputScreenState extends State<MobileInputScreen> {
 
   bool _isLoading = false;
   String? _errorMessage;
-  bool _isEmailMode = true; // Default to email mode
 
-  // Toggle between phone and email mode
-  void _toggleInputMode() {
-    setState(() {
-      _isEmailMode = !_isEmailMode;
-      _mobileController.clear();
-      _errorMessage = null;
-    });
-  }
+  // Show selection popup for login methods
+  void _showLoginMethodPopup(String email) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: _bgColor,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header with close button
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Choose Login Method',
+                      style: TextStyle(
+                        color: _primaryColor,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close, color: _primaryColor),
+                    ),
+                  ],
+                ),
+              ),
 
-  // Navigate to PIN Login Screen
-  void _navigateToPinLogin() {
-    String email = _isEmailMode ? _mobileController.text.trim() : '';
+              const SizedBox(height: 20),
 
-    if (email.isEmpty) {
-      setState(() {
-        _errorMessage = 'Please enter your email address first';
-      });
-      return;
-    }
+              // Login with OTP button
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 55,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      Navigator.pop(context); // Close popup first
+                      await _sendOtpAndNavigate(email); // Then navigate
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _primaryColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Login with OTP',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
 
-    if (!email.contains('@') || !email.contains('.')) {
-      setState(() {
-        _errorMessage = 'Please enter a valid email address';
-      });
-      return;
-    }
+              const SizedBox(height: 16),
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => LoginWithPinScreen(email: email)),
+              // Login with PIN button
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 55,
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Navigator.pop(context); // Close popup first
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => LoginWithPinScreen(email: email),
+                        ),
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: _primaryColor, width: 2),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text(
+                      'Login with PIN',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: _primaryColor,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 30),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  // Validation Logic with API call
-  void _validateAndContinue() async {
-    String value = _mobileController.text.trim();
-
-    // Reset error state
-    setState(() {
-      _errorMessage = null;
-    });
-
-    if (value.isEmpty) {
-      setState(() {
-        _errorMessage = _isEmailMode
-            ? "Please enter your email address"
-            : "Please enter your mobile number";
-      });
-      return;
-    }
-
-    if (_isEmailMode) {
-      // Email validation
-      if (!value.contains('@') || !value.contains('.')) {
-        setState(() {
-          _errorMessage = "Please enter a valid email address";
-        });
-        return;
-      }
-    } else {
-      // Phone validation
-      if (value.length < 10) {
-        setState(() {
-          _errorMessage = "Please enter a valid 10-digit number";
-        });
-        return;
-      }
-    }
-
+  // Send OTP and navigate to OTP screen
+  Future<void> _sendOtpAndNavigate(String email) async {
     setState(() {
       _isLoading = true;
     });
 
     try {
-      if (_isEmailMode) {
-        debugPrint('Sending OTP to email: $value');
+      final authService = AuthService();
+      final response = await authService.sendOtp(
+        email: email,
+        purpose: 'login',
+      );
 
-        // Call send-otp API with email
-        final authService = AuthService();
-        final response = await authService.sendOtp(
-          email: value,
-          purpose: 'login',
-        );
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
 
-        if (mounted) {
+        if (response.success) {
+          debugPrint('OTP sent successfully');
+          // Navigate to OTP Screen with email
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => OtpScreen(email: email, isFromSignup: false),
+            ),
+          );
+        } else {
           setState(() {
-            _isLoading = false;
+            _errorMessage = response.error ?? 'Failed to send OTP';
           });
-
-          if (response.success) {
-            debugPrint('OTP sent successfully');
-            // Navigate to OTP Screen with email
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => OtpScreen(email: value, isFromSignup: false),
-              ),
-            );
-          } else {
-            setState(() {
-              _errorMessage = response.error ?? 'Failed to send OTP';
-            });
-          }
-        }
-      } else {
-        // Phone mode - keep existing phone logic
-        String formattedPhone = value.trim();
-        if (!formattedPhone.startsWith('+')) {
-          formattedPhone = '+91$formattedPhone'; // Default to India code
-        }
-
-        debugPrint('Sending OTP to phone: $formattedPhone');
-
-        // Call send-otp API with phone
-        final authService = AuthService();
-        final response = await authService.sendOtp(
-          phone: formattedPhone,
-          purpose: 'login',
-        );
-
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-
-          if (response.success) {
-            debugPrint('OTP sent successfully');
-            // Navigate to OTP Screen with phone number
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => OtpScreen(
-                  email:
-                      formattedPhone, // Use phone as email for OTP verification
-                  isFromSignup: false,
-                ),
-              ),
-            );
-          } else {
-            setState(() {
-              _errorMessage = response.error ?? 'Failed to send OTP';
-            });
-          }
         }
       }
     } catch (e) {
@@ -178,6 +178,34 @@ class _MobileInputScreenState extends State<MobileInputScreen> {
         });
       }
     }
+  }
+
+  // Validation Logic - Show selection popup
+  void _validateAndContinue() async {
+    String value = _mobileController.text.trim();
+
+    // Reset error state
+    setState(() {
+      _errorMessage = null;
+    });
+
+    if (value.isEmpty) {
+      setState(() {
+        _errorMessage = "Please enter your email address";
+      });
+      return;
+    }
+
+    // Email validation
+    if (!value.contains('@') || !value.contains('.')) {
+      setState(() {
+        _errorMessage = "Please enter a valid email address";
+      });
+      return;
+    }
+
+    // Show login method selection popup
+    _showLoginMethodPopup(value);
   }
 
   void _showSnackBar(String message) {
@@ -229,9 +257,7 @@ class _MobileInputScreenState extends State<MobileInputScreen> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  _isEmailMode
-                      ? 'Enter your email'
-                      : 'Enter your mobile number',
+                  'Enter your email',
                   style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -262,9 +288,7 @@ class _MobileInputScreenState extends State<MobileInputScreen> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Image.asset(
-                          _isEmailMode
-                              ? 'assets/images/mail.png'
-                              : 'assets/images/mail.png',
+                          'assets/images/mail.png',
                           width: 22,
                           height: 22,
                           color: _primaryColor,
@@ -273,9 +297,7 @@ class _MobileInputScreenState extends State<MobileInputScreen> {
                         Expanded(
                           child: TextField(
                             controller: _mobileController,
-                            keyboardType: _isEmailMode
-                                ? TextInputType.emailAddress
-                                : TextInputType.phone,
+                            keyboardType: TextInputType.emailAddress,
                             cursorColor: _primaryColor,
                             style: const TextStyle(
                               fontSize: 18,
@@ -283,9 +305,7 @@ class _MobileInputScreenState extends State<MobileInputScreen> {
                               fontWeight: FontWeight.w400,
                             ),
                             decoration: InputDecoration(
-                              hintText: _isEmailMode
-                                  ? 'Email Address'
-                                  : 'Mobile Number',
+                              hintText: 'Email Address',
                               hintStyle: const TextStyle(
                                 color: _primaryColor,
                                 fontSize: 18,
@@ -305,41 +325,7 @@ class _MobileInputScreenState extends State<MobileInputScreen> {
 
               const SizedBox(height: 25),
 
-              // 4. Toggle Input Mode Button
-              Align(
-                alignment: Alignment.centerRight,
-                child: InkWell(
-                  onTap: _toggleInputMode,
-                  child: Text(
-                    _isEmailMode ? 'Use Mobile Number' : 'Use Email-ID',
-                    style: const TextStyle(
-                      color: _primaryColor,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // 5. Login with PIN Button
-              Align(
-                alignment: Alignment.centerRight,
-                child: InkWell(
-                  onTap: _navigateToPinLogin,
-                  child: const Text(
-                    'Login with PIN',
-                    style: TextStyle(
-                      color: _primaryColor,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-
-              const Spacer(),
+              const SizedBox(height: 40),
 
               // Error Message Display
               if (_errorMessage != null)
