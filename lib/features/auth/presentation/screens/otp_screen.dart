@@ -179,6 +179,16 @@ class _OtpScreenState extends State<OtpScreen> {
             _errorMessage = response.error ?? 'Invalid OTP. Please try again.';
             _isLoading = false;
           });
+
+          // Show floating alert for invalid OTP
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(_errorMessage ?? 'Invalid OTP. Please try again.'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
         }
       }
     } catch (e) {
@@ -375,7 +385,7 @@ class _OtpScreenState extends State<OtpScreen> {
                           width: double.infinity,
                           height: 52,
                           child: ElevatedButton(
-                            onPressed: _onLogin,
+                            onPressed: _isLoading ? null : _onLogin,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: _primaryDark,
                               shape: RoundedRectangleBorder(
@@ -383,14 +393,25 @@ class _OtpScreenState extends State<OtpScreen> {
                               ),
                               elevation: 4,
                             ),
-                            child: Text(
-                              widget.isFromSignup ? 'Verify' : 'Login',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
+                            child: _isLoading
+                                ? SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  )
+                                : Text(
+                                    widget.isFromSignup ? 'Verify' : 'Login',
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                           ),
                         ),
                         const SizedBox(height: 30),

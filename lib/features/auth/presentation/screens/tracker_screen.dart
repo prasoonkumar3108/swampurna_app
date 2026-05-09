@@ -251,14 +251,27 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
   // Generate default calendar data (fallback)
   TrackerData _generateDefaultCalendarData() {
+    final now = DateTime.now();
+    final monthNames = [
+      'JANUARY',
+      'FEBRUARY',
+      'MARCH',
+      'APRIL',
+      'MAY',
+      'JUNE',
+      'JULY',
+      'AUGUST',
+      'SEPTEMBER',
+      'OCTOBER',
+      'NOVEMBER',
+      'DECEMBER',
+    ];
+
     return TrackerData(
-      monthTitle: "FEBRUARY 2026",
+      monthTitle: "${monthNames[now.month - 1]} ${now.year}",
       days: [
-        ...List.generate(8, (i) => CalendarDay(day: i + 1, type: 'period')),
-        ...List.generate(2, (i) => CalendarDay(day: i + 9, type: 'post')),
-        ...List.generate(5, (i) => CalendarDay(day: i + 11, type: 'ovulation')),
-        ...List.generate(11, (i) => CalendarDay(day: i + 16, type: 'none')),
-        ...List.generate(2, (i) => CalendarDay(day: i + 27, type: 'pre')),
+        // All days in neutral gray state when API fails
+        ...List.generate(31, (i) => CalendarDay(day: i + 1, type: 'none')),
       ],
     );
   }
