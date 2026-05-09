@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'birth_year_picker_screen.dart';
+import 'pregnancy_selection_screen.dart';
 import '../models/onboarding_data.dart';
 
 /// ---------------- CONSTANTS ----------------
@@ -62,8 +62,11 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen> {
 
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) =>
-            BirthYearPickerScreen(onboardingData: updatedData),
+        builder: (context) => PregnancySelectionScreen(
+          selectedBirthYear: DateTime.now().year - 25, // Default age 25
+          onboardingSource: option, // Use actual user selected option
+          usingFor: 'self',
+        ),
       ),
     );
   }

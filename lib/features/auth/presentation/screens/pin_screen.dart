@@ -4,14 +4,21 @@ import 'package:flutter/services.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../core/services/token_storage_service.dart';
 import '../../../auth/presentation/screens/tracker_screen.dart';
+import '../../../auth/presentation/screens/confirmation_screen.dart';
+import '../models/onboarding_data.dart';
 import 'mobile_input_screen.dart';
 
 enum PinMode { LOGIN_PIN, SET_PIN, VERIFY_PIN }
 
 class PinScreen extends StatefulWidget {
   final String email;
+  final PinMode initialMode;
 
-  const PinScreen({super.key, required this.email});
+  const PinScreen({
+    super.key,
+    required this.email,
+    this.initialMode = PinMode.LOGIN_PIN,
+  });
 
   @override
   State<PinScreen> createState() => _PinScreenState();
@@ -27,7 +34,7 @@ class _PinScreenState extends State<PinScreen> {
   // UI State
   bool _isLoading = false;
   String? _errorMessage;
-  PinMode _currentMode = PinMode.LOGIN_PIN;
+  late PinMode _currentMode;
 
   // Colors matching the OTP screen design
   static const Color _primaryDark = Color(0xFF1D2671);
@@ -37,7 +44,10 @@ class _PinScreenState extends State<PinScreen> {
   @override
   void initState() {
     super.initState();
-    debugPrint('🔐 PinScreen initialized for email: ${widget.email}');
+    _currentMode = widget.initialMode;
+    debugPrint(
+      '🔐 PinScreen initialized for email: ${widget.email}, mode: $_currentMode',
+    );
   }
 
   @override
@@ -149,11 +159,20 @@ class _PinScreenState extends State<PinScreen> {
           debugPrint('✅ PIN set successful');
           _showSuccessToast('PIN set successfully!');
 
-          // Switch to VERIFY_PIN mode
-          setState(() {
-            _currentMode = PinMode.VERIFY_PIN;
-            _clearPIN();
-          });
+          // Navigate to ConfirmationScreen for new users
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ConfirmationScreen(
+                  onboardingData: OnboardingData(
+                    email: widget.email,
+                    otp: '', // PIN setup completed
+                  ),
+                ),
+              ),
+            );
+          }
         } else {
           setState(() {
             _errorMessage = response.error ?? 'Failed to set PIN';
@@ -207,11 +226,14 @@ class _PinScreenState extends State<PinScreen> {
           debugPrint('✅ PIN verification successful');
           _showSuccessToast('PIN verified successfully!');
 
-          // Pop back to LOGIN_PIN mode
-          setState(() {
-            _currentMode = PinMode.LOGIN_PIN;
-            _clearPIN();
-          });
+          // Navigate to Tracker/Home screen
+          if (mounted) {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const TrackerScreen()),
+              (route) => false,
+            );
+          }
         } else {
           setState(() {
             _errorMessage = response.error ?? 'PIN verification failed';
@@ -346,6 +368,21 @@ class _PinScreenState extends State<PinScreen> {
       _currentMode = PinMode.SET_PIN;
       _clearPIN();
     });
+  }
+
+  // Skip to ConfirmationScreen for new users
+  void _onSkipToTracker() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ConfirmationScreen(
+          onboardingData: OnboardingData(
+            email: widget.email,
+            otp: '', // PIN setup skipped
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -506,6 +543,22 @@ class _PinScreenState extends State<PinScreen> {
                         ),
                 ),
               ),
+
+              // Skip Button (only in LOGIN_PIN mode for existing users)
+              if (_currentMode == PinMode.LOGIN_PIN) ...[
+                const SizedBox(height: 15),
+                TextButton(
+                  onPressed: _isLoading ? null : _onSkipToTracker,
+                  child: const Text(
+                    'Skip',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ),
+              ],
 
               // Set PIN Button (only in LOGIN_PIN mode)
               if (_currentMode == PinMode.LOGIN_PIN) ...[

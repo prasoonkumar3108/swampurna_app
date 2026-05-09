@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'confirmation_screen.dart';
 import 'login_with_pin_screen.dart';
 import 'mobile_input_screen.dart';
+import 'pin_screen.dart';
 import '../models/onboarding_data.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../core/services/token_storage_service.dart';
@@ -127,12 +128,35 @@ class _OtpScreenState extends State<OtpScreen> {
             ),
           );
 
+          // Save login session for both login and signup
+          await TokenStorageService.instance.saveLoginSession(true);
+
           // Conditional navigation based on isFromSignup
           if (widget.isFromSignup) {
-            // Case 1: From signup - navigate to MobileInputScreen
+            // Case 1: From signup - TEMPORARILY BYPASS PIN and navigate directly to ConfirmationScreen
+            // Original PIN navigation (commented out):
+            /*
             Navigator.pushAndRemoveUntil(
               context,
-              MaterialPageRoute(builder: (_) => const MobileInputScreen()),
+              MaterialPageRoute(
+                builder: (_) =>
+                    const PinScreen(email: '', initialMode: PinMode.SET_PIN),
+              ),
+              (route) => false,
+            );
+            */
+
+            // Temporary bypass - go directly to ConfirmationScreen
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ConfirmationScreen(
+                  onboardingData: OnboardingData(
+                    email: widget.email,
+                    otp: _otpControllers.map((c) => c.text).join(),
+                  ),
+                ),
+              ),
               (route) => false,
             );
           } else {

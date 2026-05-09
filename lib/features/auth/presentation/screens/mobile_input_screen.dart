@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'otp_screen.dart';
 import 'signup_screen.dart';
 import 'login_with_pin_screen.dart';
+import 'pin_screen.dart';
 import '../../../../core/services/auth_service.dart';
 
 class MobileInputScreen extends StatefulWidget {
@@ -84,21 +85,80 @@ class _MobileInputScreenState extends State<MobileInputScreen> {
 
         const SizedBox(height: 16),
 
-        // Login with PIN button
+        // Login with PIN button (TEMPORARILY COMMENTED OUT)
+        /*
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: SizedBox(
             width: double.infinity,
             height: 55,
             child: OutlinedButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(context); // Close popup first
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => LoginWithPinScreen(email: email),
-                  ),
-                );
+
+                // Check user PIN status before navigation
+                setState(() {
+                  _isLoading = true;
+                });
+
+                try {
+                  final pinStatusResponse = await AuthService()
+                      .checkUserPinStatus();
+
+                  if (!mounted) return;
+
+                  setState(() {
+                    _isLoading = false;
+                  });
+
+                  // Extract pin_enabled from response
+                  bool pinEnabled = true; // Safe fallback
+                  if (pinStatusResponse.success &&
+                      pinStatusResponse.data != null &&
+                      pinStatusResponse.data?['user'] != null) {
+                    pinEnabled =
+                        pinStatusResponse.data?['user']?['pin_enabled'] ?? true;
+                  }
+
+                  debugPrint(
+                    '🔐 PIN Status: ${pinEnabled ? "Enabled" : "Not Enabled"}',
+                  );
+
+                  if (pinEnabled) {
+                    // CASE B: User has PIN - Navigate to LoginWithPinScreen
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => LoginWithPinScreen(email: email),
+                      ),
+                    );
+                  } else {
+                    // CASE A: User hasn't set PIN - Navigate to Set PIN screen
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PinScreen(
+                          email: email,
+                          initialMode: PinMode.SET_PIN,
+                        ),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (!mounted) return;
+
+                  setState(() {
+                    _isLoading = false;
+                  });
+
+                  // Fallback: Assume PIN is enabled (safe login path)
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => LoginWithPinScreen(email: email),
+                    ),
+                  );
+                }
               },
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: _primaryColor, width: 2),
@@ -116,8 +176,8 @@ class _MobileInputScreenState extends State<MobileInputScreen> {
               ),
             ),
           ),
-        ),
-
+          ),
+        */
         const SizedBox(height: 80),
       ],
     );

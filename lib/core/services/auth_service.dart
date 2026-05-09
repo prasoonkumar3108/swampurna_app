@@ -540,6 +540,28 @@ class AuthService {
     return await TokenStorageService.instance.hasValidLoginSession();
   }
 
+  /// Check user PIN status
+  Future<ApiResponse<Map<String, dynamic>>> checkUserPinStatus() async {
+    try {
+      debugPrint('🔄 [PIN STATUS CHECK] Checking user PIN status...');
+
+      final response = await _makeRequest<Map<String, dynamic>>(
+        'GET',
+        '/auth/me',
+      );
+
+      debugPrint('✅ [PIN STATUS CHECK] Response received');
+      return response;
+    } catch (e, stackTrace) {
+      debugPrint('\n❌ [PIN STATUS CHECK ERROR]');
+      debugPrint('🔥 Error: $e');
+      debugPrint('📋 Stack Trace:\n${_formatStackTrace(stackTrace)}');
+      debugPrint('⏰ Timestamp: ${DateTime.now().toIso8601String()}');
+
+      return ApiResponse.error('Failed to check PIN status', statusCode: 500);
+    }
+  }
+
   /// Fetch notification settings
   Future<ApiResponse<Map<String, dynamic>>> getNotificationSettings() async {
     try {

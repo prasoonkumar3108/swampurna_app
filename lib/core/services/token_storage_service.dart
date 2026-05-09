@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class TokenStorageService {
   static const String _tokenKey = 'auth_token';
   static const String _loginFlagKey = 'is_logged_in_flag';
+  static const String _dobKey = 'user_dob';
   static TokenStorageService? _instance;
   static TokenStorageService get instance =>
       _instance ??= TokenStorageService._();
@@ -96,6 +97,30 @@ class TokenStorageService {
     } catch (e) {
       print('❌ Error checking valid login session: $e');
       return false;
+    }
+  }
+
+  /// Save user DOB
+  Future<void> saveDob(String dob) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_dobKey, dob);
+      print('✅ DOB saved successfully');
+    } catch (e) {
+      print('❌ Error saving DOB: $e');
+    }
+  }
+
+  /// Get user DOB
+  Future<String?> getDob() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final dob = prefs.getString(_dobKey);
+      print('🔑 DOB retrieved: ${dob != null ? 'Found' : 'Not found'}');
+      return dob;
+    } catch (e) {
+      print('❌ Error retrieving DOB: $e');
+      return null;
     }
   }
 

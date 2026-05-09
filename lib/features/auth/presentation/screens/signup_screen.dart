@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/services/auth_service.dart';
+import '../../../../core/services/token_storage_service.dart';
 import '../../../../core/models/register_request.dart';
 import 'otp_screen.dart';
 
@@ -107,10 +108,12 @@ class _SignupScreenState extends State<SignupScreen> {
               ? ''
               : _email.text.trim();
 
-          // TODO: Save user token locally
-          // await TokenManager.saveToken(response.data?.token ?? '');
+          // Store DOB locally after signup success
+          if (_dob.text.trim().isNotEmpty) {
+            await TokenStorageService.instance.saveDob(_dob.text.trim());
+          }
 
-          // Navigate to OTP Screen for email verification
+          // Navigate to OTP Screen for verification
           Navigator.push(
             context,
             MaterialPageRoute(
