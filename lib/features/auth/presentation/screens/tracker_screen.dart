@@ -51,6 +51,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
   late TrackerData apiData;
 
   // API Integration States
+  bool _isLoading = true;
   bool _hasError = false;
   String _errorMessage = '';
 
@@ -111,6 +112,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
           _hasError = true;
           _errorMessage = 'Failed to load period data. Using default values.';
           apiData = _generateDefaultCalendarData(); // Fallback to default
+          _isLoading = false; // Stop loading on error
         });
         debugPrint('❌ Error fetching period tracker setup: $e');
       }
@@ -140,12 +142,14 @@ class _TrackerScreenState extends State<TrackerScreen> {
             // Generate calendar data from API summary
             apiData = _generateCalendarDataFromSummary(summaryData);
             _hasError = false;
+            _isLoading = false; // Stop loading on success
           });
         } else {
           // If summary API fails, fall back to setup-based generation
           setState(() {
             apiData = _generateCalendarDataFromAPI();
             _hasError = false;
+            _isLoading = false; // Stop loading on fallback
           });
         }
       }
@@ -154,6 +158,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
         setState(() {
           apiData = _generateCalendarDataFromAPI();
           _hasError = false;
+          _isLoading = false; // Stop loading on catch
         });
         debugPrint('❌ Error fetching period tracker summary: $e');
       }
@@ -328,20 +333,34 @@ class _TrackerScreenState extends State<TrackerScreen> {
   Widget _buildTrackerUI() {
     final double screenWidth = MediaQuery.of(context).size.width;
 
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Column(
-        children: [
-          _buildTopWarningBar(),
-          _buildMainHeader(),
-          _buildCalendarCard(screenWidth),
-          if (_hasError) _buildErrorBanner(),
-          _buildLegendSection(),
-          const SizedBox(height: 10),
-          _buildActionBtn("Edit period dates"),
-          _buildInsightsSection(),
-          const SizedBox(height: 100),
-        ],
+    // Show loading state while API data is being fetched
+    if (_isLoading) {
+      return SafeArea(
+        child: Center(
+          child: CircularProgressIndicator(color: navyBlue, strokeWidth: 3),
+        ),
+      );
+    }
+
+    return SafeArea(
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.only(top: 24.0),
+          child: Column(
+            children: [
+              _buildTopWarningBar(),
+              _buildMainHeader(),
+              _buildCalendarCard(screenWidth),
+              if (_hasError) _buildErrorBanner(),
+              _buildLegendSection(),
+              const SizedBox(height: 10),
+              _buildActionBtn("Edit period dates"),
+              _buildInsightsSection(),
+              const SizedBox(height: 100),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -429,7 +448,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
             icon: Icon(Icons.chevron_left, color: navyBlue, size: 30),
           ),
           Text(
-            apiData.monthTitle,
+            'Your Tracker',
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -451,7 +470,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
       decoration: const BoxDecoration(color: Colors.white),
       child: Column(
         children: [
-          const SizedBox(height: 15),
+          const SizedBox(height: 20),
           Text(
             apiData.monthTitle,
             style: TextStyle(

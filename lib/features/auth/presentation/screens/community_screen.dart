@@ -274,9 +274,7 @@ class _CommunityScreenState extends State<CommunityScreen>
           return const Center(child: Text("No data found"));
 
         return ListView.separated(
-          padding: const EdgeInsets.only(
-            bottom: 100,
-          ), // Bottom padding for navigation bar
+          padding: const EdgeInsets.all(16),
           itemCount: snapshot.data!.length,
           separatorBuilder: (_, __) => const SizedBox(height: 16),
           itemBuilder: (context, index) => itemBuilder(snapshot.data![index]),
@@ -301,18 +299,21 @@ class _CommunityScreenState extends State<CommunityScreen>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.network(
-              blog.imageUrl.isEmpty ? placeholder : blog.imageUrl,
-              width: 80,
-              height: 80,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
-                width: 80,
-                height: 80,
-                color: Colors.grey[300],
-                child: const Icon(Icons.image),
+          Container(
+            margin: const EdgeInsets.only(right: 12),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                blog.imageUrl.isEmpty ? placeholder : blog.imageUrl,
+                width: 85,
+                height: 85,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  width: 85,
+                  height: 85,
+                  color: Colors.grey[300],
+                  child: const Icon(Icons.image),
+                ),
               ),
             ),
           ),
@@ -421,56 +422,65 @@ class _CommunityScreenState extends State<CommunityScreen>
             child: Row(
               children: [
                 CircleAvatar(
-                  radius: 18,
+                  radius: 20,
                   backgroundColor: navyBlue,
                   child: const Icon(
                     Icons.person,
-                    size: 20,
+                    size: 22,
                     color: Colors.white,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    post.authorEmail.split('@')[0],
+                    'FlowCare',
                     style: const TextStyle(
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.bold,
                       color: Colors.black87,
-                      fontSize: 15,
+                      fontSize: 16,
                     ),
                   ),
                 ),
-                Icon(Icons.more_horiz, color: Colors.grey[600], size: 20),
+                GestureDetector(
+                  onTap: () => print('More options clicked'),
+                  child: Icon(
+                    Icons.more_vert,
+                    color: Colors.grey[600],
+                    size: 20,
+                  ),
+                ),
               ],
             ),
           ),
 
           // Media Image - Full width
           if (post.imageUrl.isNotEmpty && post.imageUrl != placeholder)
-            CachedNetworkImage(
-              imageUrl: post.imageUrl,
-              width: double.infinity,
-              height: 200,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => Container(
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: CachedNetworkImage(
+                imageUrl: post.imageUrl,
                 width: double.infinity,
                 height: 200,
-                color: Colors.grey[200],
-                child: const Center(child: CircularProgressIndicator()),
-              ),
-              errorWidget: (context, url, error) {
-                debugPrint(
-                  'Recent Post image load error: $error for URL: $url',
-                );
-                return Container(
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
                   width: double.infinity,
                   height: 200,
                   color: Colors.grey[200],
-                  child: const Icon(Icons.broken_image, size: 40),
-                );
-              },
-            ),
-
+                  child: const Center(child: CircularProgressIndicator()),
+                ),
+                errorWidget: (context, url, error) {
+                  debugPrint(
+                    'Recent Post image load error: $error for URL: $url',
+                  );
+                  return Container(
+                    width: double.infinity,
+                    height: 200,
+                    color: Colors.grey[200],
+                    child: const Icon(Icons.broken_image, size: 40),
+                  );
+                },
+              ),
+            ), // Added closing parenthesis here
           // Action Row - Transparent icons
           if (post.imageUrl.isNotEmpty && post.imageUrl != placeholder)
             Padding(
@@ -606,14 +616,12 @@ class _CommunityScreenState extends State<CommunityScreen>
                 return const Center(child: Text("No snaps found"));
 
               return GridView.builder(
-                padding: const EdgeInsets.only(
-                  bottom: 100,
-                ), // Bottom padding for navigation bar
+                padding: const EdgeInsets.all(16),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  childAspectRatio: 0.6, // Taller cards to match screenshot
+                  childAspectRatio: 0.7, // Taller cards for vertical layout
                   crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
+                  mainAxisSpacing: 16,
                 ),
                 itemCount: snapshot.data!.length,
                 itemBuilder: (context, index) {
@@ -826,18 +834,17 @@ class _CommunityScreenState extends State<CommunityScreen>
   // --- Keep your existing UI UI Components ---
   Widget _buildCustomTabBar() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: navyBlue,
         borderRadius: BorderRadius.circular(30),
       ),
       child: TabBar(
         controller: _tabController,
-        indicator: BoxDecoration(
-          borderRadius: BorderRadius.circular(30),
-          color: accentOrange.withOpacity(0.2),
+        indicator: UnderlineTabIndicator(
+          borderSide: BorderSide(color: Colors.orange, width: 2),
         ),
-        indicatorColor: accentOrange,
+        indicatorSize: TabBarIndicatorSize.label,
         dividerColor: Colors.transparent,
         labelColor: accentOrange,
         unselectedLabelColor: Colors.white,
