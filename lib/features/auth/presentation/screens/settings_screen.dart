@@ -119,6 +119,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   navyBlue: navyBlue,
                   cardBg: cardBg,
                 ),
+                const SizedBox(height: 30), // Bottom breathing space
               ],
             ),
           ),
