@@ -386,7 +386,7 @@ class _CommunityScreenState extends State<CommunityScreen>
 
               return ListView.builder(
                 padding: const EdgeInsets.only(
-                  bottom: 100,
+                  bottom: 120,
                 ), // Bottom padding for navigation bar
                 itemCount: snapshot.data!.length,
                 itemBuilder: (context, index) =>
@@ -401,7 +401,7 @@ class _CommunityScreenState extends State<CommunityScreen>
 
   Widget _buildPostItem(PostModel post) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 0),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -616,10 +616,10 @@ class _CommunityScreenState extends State<CommunityScreen>
                 return const Center(child: Text("No snaps found"));
 
               return GridView.builder(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 110.0),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  childAspectRatio: 0.7, // Taller cards for vertical layout
+                  childAspectRatio: 0.7,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 16,
                 ),
@@ -680,47 +680,48 @@ class _CommunityScreenState extends State<CommunityScreen>
                                 end: Alignment.bottomCenter,
                                 colors: [
                                   Colors.transparent,
-                                  Colors.black.withOpacity(0.1),
                                   Colors.black.withOpacity(0.3),
+                                  Colors.black.withOpacity(0.7),
                                 ],
-                                stops: [0.0, 0.7, 1.0],
+                                stops: const [0.0, 0.4, 1.0],
                               ),
                             ),
                           ),
                         ),
 
-                        // Top-left Title
+                        // Bottom Content
                         Positioned(
-                          top: 8,
+                          bottom: 8,
                           left: 8,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.8),
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.3),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
+                          right: 8,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Title
+                              Text(
+                                (snap.title.isNotEmpty && snap.title != 'null')
+                                    ? snap.title
+                                    : 'Cycle Snap',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                              ],
-                            ),
-                            child: Text(
-                              (snap.title.isNotEmpty && snap.title != 'null')
-                                  ? snap.title
-                                  : 'Cycle Snap',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                              const SizedBox(height: 2),
+                              // Author and Date
+                              if (snap.authorEmail != null)
+                                Text(
+                                  snap.authorEmail!.split('@').first,
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.7),
+                                    fontSize: 9,
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
 
@@ -751,55 +752,6 @@ class _CommunityScreenState extends State<CommunityScreen>
                                 size: 18,
                               ),
                             ),
-                          ),
-                        ),
-
-                        // Bottom Description and Stats
-                        Positioned(
-                          bottom: 8,
-                          left: 8,
-                          right: 8,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (snap.description.isNotEmpty &&
-                                  snap.description != 'null')
-                                Container(
-                                  margin: const EdgeInsets.only(bottom: 4),
-                                  child: Text(
-                                    snap.description,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  Text(
-                                    '24M views',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '#PeriodPower',
-                                    style: TextStyle(
-                                      color: Colors.white.withOpacity(0.7),
-                                      fontSize: 9,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
                           ),
                         ),
 
