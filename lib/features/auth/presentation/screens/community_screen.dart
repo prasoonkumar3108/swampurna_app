@@ -797,15 +797,23 @@ class _CommunityScreenState extends State<CommunityScreen>
         controller: _tabController,
         indicator: UnderlineTabIndicator(
           borderSide: BorderSide(color: Colors.orange, width: 2),
+          insets: EdgeInsets.only(bottom: 8),
         ),
         indicatorSize: TabBarIndicatorSize.label,
+        indicatorPadding: const EdgeInsets.only(bottom: 4),
         dividerColor: Colors.transparent,
         labelColor: accentOrange,
         unselectedLabelColor: Colors.white,
-        tabs: const [
-          Tab(text: "Our blog"),
-          Tab(text: "Recent Post"),
-          Tab(text: "Cycle snaps"),
+        labelPadding: const EdgeInsets.symmetric(horizontal: 12),
+        tabs: [
+          const Tab(text: "Our blog"),
+          Tab(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: const Text("Recent Posts"),
+            ),
+          ),
+          const Tab(text: "Cycle snaps"),
         ],
       ),
     );

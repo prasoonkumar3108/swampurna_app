@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/services/auth_service.dart';
 
 // Keep these only if the files exist, otherwise the consolidated classes below take over
@@ -196,8 +197,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
     }
 
     return TrackerData(
-      monthTitle:
-          "${_currentMonth.month.toString().padLeft(2, '0')}/${_currentMonth.year}",
+      monthTitle: DateFormat('MMM yyyy').format(_currentMonth).toUpperCase(),
       days: days,
     );
   }
@@ -241,8 +241,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
     }
 
     return TrackerData(
-      monthTitle:
-          "${_currentMonth.month.toString().padLeft(2, '0')}/${_currentMonth.year}",
+      monthTitle: DateFormat('MMM yyyy').format(_currentMonth).toUpperCase(),
       days: days,
       legend: legend,
       adaptiveMetrics: adaptiveMetrics,
@@ -268,7 +267,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
     ];
 
     return TrackerData(
-      monthTitle: "${monthNames[now.month - 1]} ${now.year}",
+      monthTitle: DateFormat('MMM yyyy').format(now).toUpperCase(),
       days: [
         // All days in neutral gray state when API fails
         ...List.generate(31, (i) => CalendarDay(day: i + 1, type: 'none')),

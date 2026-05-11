@@ -26,15 +26,14 @@ class _PregnancySelectionScreenState extends State<PregnancySelectionScreen> {
 
   // Map button text to backend values
   String _mapPregnancyStatus(String buttonText) {
-    switch (buttonText) {
-      case "Yes, I am":
-        return "yes_i_am";
-      case "No, but I want to be":
-        return "planning_to_conceive";
-      case "No, I am here to understand my body":
-        return "not_pregnant";
-      default:
-        return "not_pregnant";
+    if (buttonText == "Yes, I am") {
+      return "yes_i_am"; // Keep existing working logic for this case
+    } else {
+      // Convert to lowercase and replace spaces/commas with underscores
+      return buttonText
+          .toLowerCase()
+          .replaceAll(', ', '_')
+          .replaceAll(' ', '_');
     }
   }
 
