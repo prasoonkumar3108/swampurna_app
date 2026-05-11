@@ -26,3 +26,7 @@
 -keepattributes *Annotation*
 -dontwarn okhttp3.**
 -dontwarn retrofit2.**
+
+# Play Store split install compatibility
+-dontwarn com.google.android.play.core.**
+-keep class com.google.android.play.core.** { *; }
