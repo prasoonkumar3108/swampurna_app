@@ -47,5 +47,10 @@ flutter:
     - assets/images/butterfly.png
     - assets/images/stage.png
     - assets/images/smc.png
+    - assets/images/ftab.png
+    - assets/images/stab.png
+    - assets/images/ttab.png
+    - assets/images/frtab.png
+    - assets/images/fftab.png
 
 

@@ -710,11 +710,11 @@ class _TrackerScreenState extends State<TrackerScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _navIcon(Icons.home_outlined, 0),
-              _navIcon(Icons.calendar_month, 1),
-              _navIcon(Icons.book_outlined, 2),
-              _navIcon(Icons.workspace_premium_outlined, 3),
-              _navIcon(Icons.person_outline, 4),
+              _navIcon('assets/images/ftab.png', 0),
+              _navIcon('assets/images/stab.png', 1),
+              _navIcon('assets/images/ttab.png', 2),
+              _navIcon('assets/images/frtab.png', 3),
+              _navIcon('assets/images/fftab.png', 4),
             ],
           ),
         ),
@@ -722,17 +722,18 @@ class _TrackerScreenState extends State<TrackerScreen> {
     );
   }
 
-  Widget _navIcon(IconData icon, int index) {
+  Widget _navIcon(String assetPath, int index) {
     bool isActive = _currentIndex == index;
     return InkWell(
       onTap: () => setState(() => _currentIndex = index),
       borderRadius: BorderRadius.circular(20),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
-        child: Icon(
-          icon,
-          color: isActive ? Colors.orange : Colors.white,
-          size: 30,
+        child: Image.asset(
+          assetPath,
+          height: 24,
+          width: 24,
+          color: isActive ? const Color(0xFFE67E22) : Colors.grey[400],
         ),
       ),
     );

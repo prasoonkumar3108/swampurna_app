@@ -42,7 +42,9 @@ class BlogModel {
 
 class PostModel {
   final String title, content, imageUrl, authorEmail;
-  final int likes, comments;
+  final int likes, comments, likeCount, commentCount;
+  final bool likedByMe;
+  final String? createdAt;
   PostModel({
     required this.title,
     required this.content,
@@ -50,6 +52,10 @@ class PostModel {
     required this.authorEmail,
     required this.likes,
     required this.comments,
+    this.likeCount = 0,
+    this.commentCount = 0,
+    this.likedByMe = false,
+    this.createdAt,
   });
 
   factory PostModel.fromJson(Map<String, dynamic> json) {
@@ -61,6 +67,10 @@ class PostModel {
       authorEmail: json['author']?['email'] ?? 'Anonymous',
       likes: json['like_count'] ?? 0,
       comments: json['comment_count'] ?? 0,
+      likeCount: json['like_count'] ?? 0,
+      commentCount: json['comment_count'] ?? 0,
+      likedByMe: json['liked_by_me'] ?? false,
+      createdAt: json['created_at'],
     );
   }
 }
@@ -101,6 +111,7 @@ class CommunityScreen extends StatefulWidget {
 class _CommunityScreenState extends State<CommunityScreen>
     with TickerProviderStateMixin {
   late TabController _tabController;
+  int _currentIndex = 0;
 
   final Color navyBlue = const Color(0xFF1E1E5F);
   final Color accentOrange = const Color(0xFFFFA000);
@@ -255,6 +266,72 @@ class _CommunityScreenState extends State<CommunityScreen>
           ],
         ),
       ),
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+            _tabController.animateTo(index);
+          });
+        },
+        showSelectedLabels: false,
+        showUnselectedLabels: false,
+        selectedItemColor: const Color(0xFFE67E22),
+        unselectedItemColor: Colors.grey[600],
+        items: [
+          BottomNavigationBarItem(
+            icon: Image.asset('assets/images/ftab.png', height: 24, width: 24),
+            activeIcon: Image.asset(
+              'assets/images/ftab.png',
+              height: 24,
+              width: 24,
+              color: const Color(0xFFE67E22),
+            ),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Image.asset('assets/images/stab.png', height: 24, width: 24),
+            activeIcon: Image.asset(
+              'assets/images/stab.png',
+              height: 24,
+              width: 24,
+              color: const Color(0xFFE67E22),
+            ),
+            label: 'Calendar',
+          ),
+          BottomNavigationBarItem(
+            icon: Image.asset('assets/images/ttab.png', height: 24, width: 24),
+            activeIcon: Image.asset(
+              'assets/images/ttab.png',
+              height: 24,
+              width: 24,
+              color: const Color(0xFFE67E22),
+            ),
+            label: 'Community',
+          ),
+          BottomNavigationBarItem(
+            icon: Image.asset('assets/images/frtab.png', height: 24, width: 24),
+            activeIcon: Image.asset(
+              'assets/images/frtab.png',
+              height: 24,
+              width: 24,
+              color: const Color(0xFFE67E22),
+            ),
+            label: 'Rewards',
+          ),
+          BottomNavigationBarItem(
+            icon: Image.asset('assets/images/fftab.png', height: 24, width: 24),
+            activeIcon: Image.asset(
+              'assets/images/fftab.png',
+              height: 24,
+              width: 24,
+              color: const Color(0xFFE67E22),
+            ),
+            label: 'Profile',
+          ),
+        ],
+      ),
     );
   }
 
@@ -276,7 +353,7 @@ class _CommunityScreenState extends State<CommunityScreen>
           return const Center(child: Text("No data found"));
 
         return ListView.separated(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 54),
           itemCount: snapshot.data!.length,
           separatorBuilder: (_, __) => const SizedBox(height: 16),
           itemBuilder: (context, index) => itemBuilder(snapshot.data![index]),
@@ -388,7 +465,7 @@ class _CommunityScreenState extends State<CommunityScreen>
 
               return ListView.builder(
                 padding: const EdgeInsets.only(
-                  bottom: 120,
+                  bottom: 30,
                 ), // Bottom padding for navigation bar
                 itemCount: snapshot.data!.length,
                 itemBuilder: (context, index) =>
@@ -402,8 +479,28 @@ class _CommunityScreenState extends State<CommunityScreen>
   }
 
   Widget _buildPostItem(PostModel post) {
+    // Calculate time ago
+    String timeAgo = 'Just now';
+    if (post.createdAt != null) {
+      try {
+        final createdAt = DateTime.parse(post.createdAt!);
+        final now = DateTime.now();
+        final difference = now.difference(createdAt);
+
+        if (difference.inDays > 0) {
+          timeAgo = '${difference.inDays} days ago';
+        } else if (difference.inHours > 0) {
+          timeAgo = '${difference.inHours} hours ago';
+        } else if (difference.inMinutes > 0) {
+          timeAgo = '${difference.inMinutes} minutes ago';
+        }
+      } catch (e) {
+        debugPrint('Error parsing date: $e');
+      }
+    }
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 0),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -418,7 +515,7 @@ class _CommunityScreenState extends State<CommunityScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header - ListTile style
+          // Header - Post title instead of FlowCare
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
@@ -435,7 +532,7 @@ class _CommunityScreenState extends State<CommunityScreen>
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'FlowCare',
+                    post.title.isNotEmpty ? post.title : 'Anonymous',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
@@ -455,114 +552,134 @@ class _CommunityScreenState extends State<CommunityScreen>
             ),
           ),
 
-          // Media Image - Full width
+          // Media Image - Proper square/rectangular with BoxFit.cover
           if (post.imageUrl.isNotEmpty && post.imageUrl != placeholder)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: CachedNetworkImage(
-                imageUrl: post.imageUrl,
-                width: double.infinity,
-                height: 200,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  width: double.infinity,
-                  height: 200,
-                  color: Colors.grey[200],
-                  child: const Center(child: CircularProgressIndicator()),
-                ),
-                errorWidget: (context, url, error) {
-                  debugPrint(
-                    'Recent Post image load error: $error for URL: $url',
-                  );
-                  return Container(
-                    width: double.infinity,
-                    height: 200,
+            Container(
+              width: double.infinity,
+              height: 350,
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: CachedNetworkImage(
+                  imageUrl: post.imageUrl,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Container(
                     color: Colors.grey[200],
-                    child: const Icon(Icons.broken_image, size: 40),
-                  );
-                },
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
+                  errorWidget: (context, url, error) {
+                    debugPrint(
+                      'Recent Post image load error: $error for URL: $url',
+                    );
+                    return Container(
+                      color: Colors.grey[200],
+                      child: const Icon(Icons.broken_image, size: 40),
+                    );
+                  },
+                ),
               ),
-            ), // Added closing parenthesis here
-          // Action Row - Transparent icons
+            ),
+
+          // Action Row - 4 Icons: Like, Comment, Share, Bookmark
           if (post.imageUrl.isNotEmpty && post.imageUrl != placeholder)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 children: [
+                  // Like Icon
                   GestureDetector(
                     onTap: () => print('Like clicked'),
                     child: Icon(
-                      Icons.favorite_border,
-                      color: Colors.black54,
-                      size: 22,
+                      post.likedByMe ? Icons.favorite : Icons.favorite_border,
+                      color: post.likedByMe ? Colors.red : Colors.black54,
+                      size: 24,
                     ),
                   ),
-                  const SizedBox(width: 24),
+                  const SizedBox(width: 20),
+                  // Comment Icon
                   GestureDetector(
                     onTap: () => print('Comment clicked'),
                     child: Icon(
                       Icons.chat_bubble_outline,
                       color: Colors.black54,
-                      size: 22,
+                      size: 24,
                     ),
                   ),
-                  const SizedBox(width: 24),
+                  const SizedBox(width: 20),
+                  // Share Icon
                   GestureDetector(
                     onTap: () => print('Share clicked'),
-                    child: Icon(Icons.share, color: Colors.black54, size: 22),
+                    child: Icon(Icons.send, color: Colors.black54, size: 24),
+                  ),
+                  const SizedBox(width: 20),
+                  // Bookmark Icon
+                  GestureDetector(
+                    onTap: () => print('Bookmark clicked'),
+                    child: Icon(
+                      Icons.bookmark_border,
+                      color: Colors.black54,
+                      size: 24,
+                    ),
                   ),
                 ],
               ),
             ),
 
-          // Content Section
+          // Content Section - Full description without maxLines constraint
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                RichText(
-                  text: TextSpan(
-                    children: [
-                      TextSpan(
-                        text: post.authorEmail.split('@')[0],
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const TextSpan(text: ' '),
-                      TextSpan(
-                        text: post.content,
-                        style: const TextStyle(
-                          color: Colors.black87,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
+                // Post content without maxLines
+                Text(
+                  post.content,
+                  style: const TextStyle(color: Colors.black87, fontSize: 14),
                 ),
                 const SizedBox(height: 8),
-                if (post.comments > 0)
-                  GestureDetector(
-                    onTap: () => print('View all comments clicked'),
-                    child: Text(
-                      'View all ${post.comments} comments...',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+
+                // Stats & Time
+                Row(
+                  children: [
+                    Text(
+                      '${post.likeCount} likes',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 16),
+                    if (post.commentCount > 0)
+                      GestureDetector(
+                        onTap: () => print('View all comments clicked'),
+                        child: Text(
+                          'View all ${post.commentCount} comments',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    const Spacer(),
+                    Text(
+                      timeAgo,
+                      style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
 
-          // Add Comment Section
+          // Comment Section
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: [
                 CircleAvatar(
-                  radius: 14,
+                  radius: 16,
                   backgroundColor: Colors.grey[300],
                   child: const Icon(
                     Icons.person,
@@ -572,24 +689,28 @@ class _CommunityScreenState extends State<CommunityScreen>
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      'Add a comment...',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                  child: GestureDetector(
+                    onTap: () => print('Add comment clicked'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        'Add a comment...',
+                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
           ),
+          const SizedBox(height: 8),
         ],
       ),
     );
@@ -618,7 +739,7 @@ class _CommunityScreenState extends State<CommunityScreen>
                 return const Center(child: Text("No snaps found"));
 
               return GridView.builder(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 110.0),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 40.0),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   childAspectRatio: 0.7,
