@@ -203,7 +203,7 @@ class _DynamicCommunityScreenState extends State<DynamicCommunityScreen>
   Widget _buildContent() {
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.only(top: 20, bottom: 20),
+      padding: const EdgeInsets.only(top: 50, bottom: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
