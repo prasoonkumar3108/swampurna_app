@@ -2,7 +2,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:path/path.dart' as path;
+import 'dart:convert';
 import '../../../../core/services/auth_service.dart';
+import '../../../../core/services/token_storage_service.dart';
 
 enum PostType { recentPost, cycleSnap }
 
@@ -60,35 +65,62 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     }
   }
 
-  Future<String?> _uploadImageToStorage(File imageFile) async {
+  Future<String?> _uploadToBackendAPI(File file) async {
     try {
-      // TODO: Implement actual image upload to Supabase/S3
-      // For now, return a placeholder URL
-      // In production, you would upload the file and get a public URL
+      String? token = await TokenStorageService.instance.getToken();
+      if (token == null) return null;
 
-      // Simulate upload delay
-      await Future.delayed(const Duration(seconds: 2));
-
-      // Return a real image URL for testing - replace with actual upload logic
-      return 'https://picsum.photos/seed/${DateTime.now().millisecondsSinceEpoch}/400/300.jpg';
-
-      /*
-      // Example Supabase upload (when implemented):
-      final fileName = 'post_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final response = await supabase.storage
-          .from('posts')
-          .upload(fileName, imageFile);
-      
-      if (response.error == null) {
-        final publicUrl = supabase.storage
-            .from('posts')
-            .getPublicUrl(fileName);
-        return publicUrl;
+      // Clean the token (removing any extra quotes)
+      token = token.replaceAll('"', '');
+      if (!token.startsWith('Bearer ')) {
+        token = 'Bearer $token';
       }
-      return null;
-      */
+
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse(
+          'https://swampurna-final-production.up.railway.app/api/v1/posts/media/upload',
+        ),
+      );
+
+      // Set headers strictly
+      request.headers.addAll({
+        'Authorization': token,
+        'Accept': 'application/json',
+      });
+
+      final extension = path
+          .extension(file.path)
+          .replaceAll('.', ''); // jpg, png, etc.
+
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'file',
+          file.path,
+          contentType: MediaType(
+            'image',
+            extension == 'jpg' ? 'jpeg' : extension,
+          ),
+        ),
+      );
+
+      debugPrint('--- UPLOAD ATTEMPT ---');
+      debugPrint('Token used: $token');
+
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return jsonDecode(response.body)['url'];
+      } else if (response.statusCode == 400) {
+        debugPrint('--- BAD REQUEST: 400 - Invalid file type ---');
+        return null;
+      } else {
+        debugPrint('Upload Failed: ${response.statusCode} - ${response.body}');
+        return null;
+      }
     } catch (e) {
-      debugPrint('Image upload error: $e');
+      debugPrint('Upload Exception: $e');
       return null;
     }
   }
@@ -133,23 +165,23 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     });
 
     try {
-      // Upload image first
+      // Upload image first to get URL
       String? imageUrl;
       if (_selectedMedia != null) {
-        imageUrl = await _uploadImageToStorage(_selectedMedia!);
+        imageUrl = await _uploadToBackendAPI(_selectedMedia!);
         if (imageUrl == null) {
-          if (mounted) {
-            setState(() {
-              _isLoading = false;
-              _isUploading = false;
-            });
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Failed to upload image'),
-                backgroundColor: Colors.red,
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Backend only accepts images (JPG/PNG). Check file extension.',
               ),
-            );
-          }
+              backgroundColor: Colors.red,
+            ),
+          );
+          setState(() {
+            _isLoading = false;
+            _isUploading = false;
+          });
           return;
         }
       }
@@ -160,14 +192,14 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           ? await authService.createRecentPost(
               title: _titleController.text.trim(),
               content: _descriptionController.text.trim(),
-              imageFile: _selectedMedia,
-              imageUrl: imageUrl,
+              imageFile: null, // Not needed since we're passing URL
+              imageUrl: imageUrl, // Backend expects media_url
             )
           : await authService.createCycleSnap(
               title: _titleController.text.trim(),
               description: _descriptionController.text.trim(),
-              mediaFile: _selectedMedia,
-              mediaUrl: imageUrl,
+              mediaFile: null, // Not needed since we're passing URL
+              mediaUrl: imageUrl, // Backend expects media_url
             );
 
       if (mounted) {

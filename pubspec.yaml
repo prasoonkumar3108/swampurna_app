@@ -18,6 +18,9 @@ dependencies:
   url_launcher: ^6.2.4 # <--- Google Maps integration ke liye added
   dio: ^5.4.3+1 # <--- Multipart form data ke liye added
   webview_flutter: ^4.4.2 # <--- WebView integration ke liye added
+  supabase_flutter: ^2.0.0 # <--- Supabase integration ke liye added
+  http_parser: ^4.0.2 # <--- MIME type handling ke liye added
+  path: ^1.8.3 # <--- File extension handling ke liye added
 
 dev_dependencies:
   flutter_test:

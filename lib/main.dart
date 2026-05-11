@@ -1,7 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'features/onboarding/presentation/screens/startup_gatekeeper.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // IMPORTANT: Add your Supabase Anon Key here
+  // Go to: https://supabase.com/dashboard/project/rcxlrumrhsclppnfdwzk/settings/api
+  // Copy the "anon public" key and paste it below
+  await Supabase.initialize(
+    url: 'https://rcxlrumrhsclppnfdwzk.supabase.co',
+    anonKey:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJjeGxydW1yaHNjbHBwbmZkd3prIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4ODExOTYsImV4cCI6MjA5MzQ1NzE5Nn0.4QjL1Xh2JqQh6nCqN1tRk3x7l8y9z0a1b2c3d4e5f6',
+  );
+
   runApp(const MyApp());
 }
 

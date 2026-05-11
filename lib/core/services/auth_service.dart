@@ -973,7 +973,10 @@ class AuthService {
       final Map<String, dynamic> requestBody = {
         'title': title,
         'description': description,
-        'media_type': mediaFile != null ? 'image' : 'text',
+        'media_type':
+            (mediaFile != null || (mediaUrl != null && mediaUrl.isNotEmpty))
+            ? 'image'
+            : 'text',
       };
 
       // Add media URL if provided (either from uploaded media or existing URL)

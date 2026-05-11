@@ -53,10 +53,11 @@ class PostModel {
   });
 
   factory PostModel.fromJson(Map<String, dynamic> json) {
+    debugPrint('PostModel JSON: $json');
     return PostModel(
       title: json['title'] ?? '',
       content: json['content'] ?? '',
-      imageUrl: json['image_url'] ?? '',
+      imageUrl: json['image_url'] ?? json['image'] ?? json['url'] ?? '',
       authorEmail: json['author']?['email'] ?? 'Anonymous',
       likes: json['like_count'] ?? 0,
       comments: json['comment_count'] ?? 0,
@@ -78,9 +79,10 @@ class SnapModel {
   });
 
   factory SnapModel.fromJson(Map<String, dynamic> json) {
+    debugPrint('SnapModel JSON: $json');
     return SnapModel(
       id: json['id'] ?? '',
-      mediaUrl: json['media_url'] ?? '',
+      mediaUrl: json['media_url'] ?? json['url'] ?? json['media'] ?? '',
       type: json['media_type'] ?? 'image',
       title: json['title'] ?? 'Cycle Snap',
       description: json['description'] ?? '',
