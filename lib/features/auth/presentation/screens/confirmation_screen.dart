@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'source_selection_screen.dart';
-import '../models/onboarding_data.dart';
+import 'package:my_app/features/auth/models/onboarding_data.dart';
 
 class ConfirmationScreen extends StatelessWidget {
   final OnboardingData onboardingData;

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'period_duration_picker_screen.dart';
-import '../models/onboarding_data.dart';
+import 'package:my_app/features/auth/models/onboarding_data.dart';
 
 class PeriodCalendarScreen extends StatefulWidget {
   final OnboardingData onboardingData;
@@ -17,12 +17,17 @@ class _PeriodCalendarScreenState extends State<PeriodCalendarScreen> {
   static const Color _navyBlue = Color(0xFF1A237E);
   static const Color _pinkBox = Color(0xFFF3A0CE);
 
+  final List<DateTime> _selectedDates = [];
+  late ScrollController _scrollController;
+
   bool _isNoIdeaSelected = false;
   final List<DateTime> _months = [];
 
   @override
   void initState() {
     super.initState();
+    // Estimated height of one month section (~380px) to center index 6 (current month)
+    _scrollController = ScrollController(initialScrollOffset: 6 * 380.0);
     _generate12Months();
   }
 
@@ -33,13 +38,24 @@ class _PeriodCalendarScreenState extends State<PeriodCalendarScreen> {
     }
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  bool isSameDay(DateTime? a, DateTime? b) {
+    if (a == null || b == null) return false;
+    return a.year == b.year &&
+        a.month == b.month &&
+        a.day == b.day;
+  }
+
   // Common Navigation Helper
   void _navigateToDurationPicker(DateTime? date) {
-    // Initialize onboarding data with existing values
-    final updatedData = OnboardingData(
-      email: widget.onboardingData.email,
-      otp: widget.onboardingData.otp,
-      birthYear: widget.onboardingData.birthYear,
+    final updatedData = widget.onboardingData.copyWith(
+      lastPeriodDate: date,
+      hasNoIdea: _isNoIdeaSelected,
     );
 
     Navigator.push(
@@ -52,16 +68,39 @@ class _PeriodCalendarScreenState extends State<PeriodCalendarScreen> {
   }
 
   void _onDateClicked(DateTime date) {
-    debugPrint("Selected Date: ${date.day}/${date.month}/${date.year}");
-    _navigateToDurationPicker(date);
+    setState(() {
+      _isNoIdeaSelected = false;
+      final existingIndex = _selectedDates.indexWhere((d) => isSameDay(d, date));
+      if (existingIndex >= 0) {
+        _selectedDates.removeAt(existingIndex);
+      } else {
+        _selectedDates.add(date);
+      }
+    });
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+    );
+  }
+
+  void _onContinue() {
+    if (_selectedDates.isEmpty) {
+      _showSnackBar("At least 1 date must be selected.");
+      return;
+    }
+    // Pass the earliest selected date to maintain compatibility with single-date model logic
+    final earliestDate = _selectedDates.reduce((a, b) => a.isBefore(b) ? a : b);
+    _navigateToDurationPicker(earliestDate);
   }
 
   // FIX: handleNoIdea added and implemented
   void _handleNoIdea() {
     setState(() {
       _isNoIdeaSelected = true;
+      _selectedDates.clear();
     });
-    debugPrint("User selected: I have no idea");
     // Navigation for 'No Idea' - passing null as date
     _navigateToDurationPicker(null);
   }
@@ -90,6 +129,7 @@ class _PeriodCalendarScreenState extends State<PeriodCalendarScreen> {
             const SizedBox(height: 15),
             Expanded(
               child: ListView.builder(
+                controller: _scrollController,
                 itemCount: _months.length,
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 physics: const BouncingScrollPhysics(),
@@ -101,6 +141,7 @@ class _PeriodCalendarScreenState extends State<PeriodCalendarScreen> {
                 },
               ),
             ),
+            _buildContinueButton(),
             _buildFooter(),
           ],
         ),
@@ -187,28 +228,51 @@ class _PeriodCalendarScreenState extends State<PeriodCalendarScreen> {
       itemBuilder: (context, index) {
         if (index < offset) return const SizedBox.shrink();
         int dayValue = index - offset + 1;
-        return InkWell(
-          onTap: () => _onDateClicked(
-            DateTime(monthDate.year, monthDate.month, dayValue),
-          ),
+        final date = DateTime(monthDate.year, monthDate.month, dayValue);
+        final isSelected = _selectedDates.any((d) => isSameDay(d, date));
+
+        return InkResponse(
+          onTap: () => _onDateClicked(date),
           child: Container(
             margin: const EdgeInsets.all(3),
             decoration: BoxDecoration(
-              color: _pinkBox,
+              color: isSelected ? _navyBlue : _pinkBox,
               borderRadius: BorderRadius.circular(4),
               border: Border.all(color: _navyBlue.withOpacity(0.1)),
             ),
             alignment: Alignment.center,
             child: Text(
               '$dayValue',
-              style: const TextStyle(
-                color: _navyBlue,
+              style: TextStyle(
+                color: isSelected ? Colors.white : _navyBlue,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildContinueButton() {
+    final bool isValid = _selectedDates.isNotEmpty;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      child: SizedBox(
+        width: double.infinity,
+        height: 50,
+        child: ElevatedButton(
+          onPressed: isValid ? _onContinue : null,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _navyBlue,
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: _navyBlue.withOpacity(0.3),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+          child: const Text('Continue', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        ),
+      ),
     );
   }
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'cycle_length_picker_screen.dart';
-import '../models/onboarding_data.dart';
+import 'package:my_app/features/auth/models/onboarding_data.dart';
 
 class PeriodDurationPickerScreen extends StatefulWidget {
   final OnboardingData onboardingData;

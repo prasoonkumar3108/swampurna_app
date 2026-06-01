@@ -5,7 +5,7 @@ import 'confirmation_screen.dart';
 import 'login_with_pin_screen.dart';
 import 'mobile_input_screen.dart';
 import 'pin_screen.dart';
-import '../models/onboarding_data.dart';
+import 'package:my_app/features/auth/models/onboarding_data.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../core/services/token_storage_service.dart';
 

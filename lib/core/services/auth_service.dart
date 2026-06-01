@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../config/api_config.dart';
 import '../models/api_response.dart';
 import '../models/register_request.dart';
+import '../../features/auth/models/period_setup_request.dart';
 import 'token_storage_service.dart';
 
 /// Custom API exceptions for better error handling
@@ -837,6 +838,31 @@ class AuthService {
       return ApiResponse.error(
         'Failed to submit onboarding data: ${e.toString()}',
       );
+    }
+  }
+
+  /// Setup initial period tracker data during onboarding
+  Future<ApiResponse<Map<String, dynamic>>> setupPeriodTracker(
+    PeriodSetupRequest request,
+  ) async {
+    try {
+      debugPrint('🚀 [PERIOD TRACKER SETUP] Initializing setup...');
+      debugPrint('📦 Payload: ${jsonEncode(request.toJson())}');
+
+      final response = await _makeRequest<Map<String, dynamic>>(
+        'POST',
+        '/period-tracker/setup',
+        body: request.toJson(),
+        requiresAuth: true,
+      );
+
+      return response;
+    } catch (e) {
+      debugPrint('❌ Period tracker setup error: $e');
+      if (e is ApiException) {
+        return ApiResponse.error(e.message, statusCode: e.statusCode);
+      }
+      return ApiResponse.error('Failed to setup period tracker: ${e.toString()}');
     }
   }
 

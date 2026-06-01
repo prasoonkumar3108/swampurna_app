@@ -5,7 +5,7 @@ import '../../../../core/services/auth_service.dart';
 import '../../../../core/services/token_storage_service.dart';
 import '../../../auth/presentation/screens/tracker_screen.dart';
 import '../../../auth/presentation/screens/confirmation_screen.dart';
-import '../models/onboarding_data.dart';
+import 'package:my_app/features/auth/models/onboarding_data.dart';
 import 'mobile_input_screen.dart';
 
 enum PinMode { LOGIN_PIN, SET_PIN, VERIFY_PIN }

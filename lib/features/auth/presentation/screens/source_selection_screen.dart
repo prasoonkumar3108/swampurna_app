@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'pregnancy_selection_screen.dart';
-import '../models/onboarding_data.dart';
+import 'package:my_app/features/auth/models/onboarding_data.dart';
 
 /// ---------------- CONSTANTS ----------------
 class AppColors {

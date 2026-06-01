@@ -1,5 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../../../auth/presentation/models/onboarding_data.dart';
+import '../../../../core/services/auth_service.dart';
+import '../../../auth/models/period_setup_request.dart';
+import 'package:my_app/features/auth/models/onboarding_data.dart';
 import '../../../auth/presentation/screens/tracker_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -12,14 +15,49 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  void _navigateToNext() {
+  bool _isLoading = false;
+
+  Future<void> _navigateToNext() async {
     if (!mounted) return;
 
-    // Navigate to TrackerScreen
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const TrackerScreen()),
-    );
+    setState(() => _isLoading = true);
+
+    try {
+      final authService = AuthService();
+
+      // Prepare the request with data (demonstrating safe defaults for journey completion)
+      final request = PeriodSetupRequest(
+        lastPeriodStartDate: widget.onboardingData?.lastPeriodDate,
+        hasNoIdea: widget.onboardingData?.hasNoIdea ?? false,
+        periodLengthDays: widget.onboardingData?.periodDuration ?? 8,
+        cycleLengthDays: widget.onboardingData?.cycleLength ?? 28,
+      );
+
+      // Debug log the exact payload being sent
+      final payload = request.toJson();
+      debugPrint('FINAL PERIOD SETUP PAYLOAD');
+      debugPrint(jsonEncode(payload));
+
+      final response = await authService.setupPeriodTracker(request);
+
+      if (mounted) {
+        if (response.success) {
+          // Navigate to TrackerScreen on success
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const TrackerScreen()),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response.error ?? 'Setup failed. Please try again.')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Onboarding setup error: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -116,7 +154,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     child: SizedBox(
                       width: 200, // Fixed width as requested
                       child: ElevatedButton(
-                        onPressed: _navigateToNext,
+                        onPressed: _isLoading ? null : _navigateToNext,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1A1A4B), // Navy Blue
                           foregroundColor: Colors.white,
@@ -126,14 +164,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             vertical: 15,
                           ),
                         ),
-                        child: const Text(
-                          "Next",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                "Next",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
                       ),
                     ),
                   ),

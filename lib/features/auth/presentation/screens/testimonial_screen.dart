@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import '../../../../core/services/auth_service.dart';
 import '../../../onboarding/presentation/screens/onboarding_screen.dart';
-import '../models/onboarding_data.dart';
+import 'package:my_app/features/auth/models/onboarding_data.dart';
 
 class TestimonialScreen extends StatefulWidget {
   final OnboardingData onboardingData;

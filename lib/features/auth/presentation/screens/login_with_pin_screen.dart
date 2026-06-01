@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/services/auth_service.dart';
 import 'confirmation_screen.dart';
-import '../models/onboarding_data.dart';
+import 'package:my_app/features/auth/models/onboarding_data.dart';
 import 'set_pin_screen.dart';
 
 class LoginWithPinScreen extends StatefulWidget {

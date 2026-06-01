@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'testimonial_screen.dart';
-import '../models/onboarding_data.dart';
+import 'package:my_app/features/auth/models/onboarding_data.dart';
 
 class CycleLengthPickerScreen extends StatefulWidget {
   final OnboardingData onboardingData;
@@ -124,7 +124,7 @@ class _CycleLengthPickerScreenState extends State<CycleLengthPickerScreen> {
 
                   // Update onboarding data with cycle length
                   final updatedData = widget.onboardingData.copyWith(
-                    // cycleLength: selectedValue, // Add if field exists in model
+                    cycleLength: selectedValue,
                   );
 
                   Navigator.of(context, rootNavigator: true).push(
