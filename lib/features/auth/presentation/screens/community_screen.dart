@@ -4,7 +4,9 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:share_plus/share_plus.dart';
 import 'create_post_screen.dart';
+import 'chat_screen.dart';
 import 'blog_detail_screen.dart';
 
 // --- Improved Models for API Data ---
@@ -41,11 +43,13 @@ class BlogModel {
 }
 
 class PostModel {
-  final String title, content, imageUrl, authorEmail;
-  final int likes, comments, likeCount, commentCount;
-  final bool likedByMe;
+  final String id, title, content, imageUrl, authorEmail;
+  final int likes, comments;
+  int likeCount, commentCount;
+  bool likedByMe;
   final String? createdAt;
   PostModel({
+    required this.id,
     required this.title,
     required this.content,
     required this.imageUrl,
@@ -61,6 +65,7 @@ class PostModel {
   factory PostModel.fromJson(Map<String, dynamic> json) {
     debugPrint('PostModel JSON: $json');
     return PostModel(
+      id: json['id'] ?? '',
       title: json['title'] ?? '',
       content: json['content'] ?? '',
       imageUrl: json['image_url'] ?? json['image'] ?? json['url'] ?? '',
@@ -71,6 +76,26 @@ class PostModel {
       commentCount: json['comment_count'] ?? 0,
       likedByMe: json['liked_by_me'] ?? false,
       createdAt: json['created_at'],
+    );
+  }
+}
+
+class CommentModel {
+  final String id, content, createdAt, authorEmail;
+
+  CommentModel({
+    required this.id,
+    required this.content,
+    required this.createdAt,
+    required this.authorEmail,
+  });
+
+  factory CommentModel.fromJson(Map<String, dynamic> json) {
+    return CommentModel(
+      id: json['id'] ?? '',
+      content: json['content'] ?? '',
+      createdAt: json['created_at'] ?? '',
+      authorEmail: json['author']?['email'] ?? 'Anonymous',
     );
   }
 }
@@ -117,9 +142,15 @@ class _CommunityScreenState extends State<CommunityScreen>
   final Color accentOrange = const Color(0xFFFFA000);
   final String placeholder = "https://via.placeholder.com/150";
 
+  // State to track expanded content per post
+  final Set<String> _expandedPostIds = {};
+
   // Keys to force FutureBuilder refresh
   int _postsRefreshKey = 0;
   int _snapsRefreshKey = 0;
+
+  // Set to track loading state for individual post likes
+  final Set<String> _loadingLikeIds = {};
 
   @override
   void initState() {
@@ -235,6 +266,223 @@ class _CommunityScreenState extends State<CommunityScreen>
       debugPrint('Error fetching snaps: $e');
       throw Exception('Failed to load snaps: $e');
     }
+  }
+
+  Future<void> toggleLike(PostModel post) async {
+    // Optimistic UI Update: No rebuilding entire list
+    setState(() {
+      if (post.likedByMe) {
+        post.likeCount--;
+      } else {
+        post.likeCount++;
+      }
+      post.likedByMe = !post.likedByMe;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+      final headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      };
+
+      final response = await http.post(
+        Uri.parse(
+          'https://swampurna-final-production.up.railway.app/api/v1/posts/${post.id}/like',
+        ),
+        headers: headers,
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        // Revert on failure
+        setState(() {
+          post.likedByMe = !post.likedByMe;
+          post.likeCount += post.likedByMe ? 1 : -1;
+        });
+      }
+    } catch (e) {
+      // Revert on network error
+      setState(() {
+        post.likedByMe = !post.likedByMe;
+        post.likeCount += post.likedByMe ? 1 : -1;
+      });
+      debugPrint('Error toggling like: $e');
+    }
+  }
+
+  Future<List<CommentModel>> fetchComments(String postId) async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+          'https://swampurna-final-production.up.railway.app/api/v1/posts/$postId/comments',
+        ),
+      );
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body);
+        if (jsonData.containsKey('data')) {
+          List data = jsonData['data'];
+          return data.map((json) => CommentModel.fromJson(json)).toList();
+        }
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching comments: $e');
+      return [];
+    }
+  }
+
+  Future<bool> postComment(PostModel post, String content) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+      final headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      };
+
+      final response = await http.post(
+        Uri.parse(
+          'https://swampurna-final-production.up.railway.app/api/v1/posts/${post.id}/comments',
+        ),
+        headers: headers,
+        body: jsonEncode({'content': content}),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        setState(() {
+          post.commentCount++;
+        });
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Error posting comment: $e');
+      return false;
+    }
+  }
+
+  void _showCommentsBottomSheet(PostModel post) {
+    final TextEditingController _commentController = TextEditingController();
+    bool _isSubmitting = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                  Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+                  const SizedBox(height: 16),
+                  const Text("Comments", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                  const Divider(),
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.4,
+                    child: FutureBuilder<List<CommentModel>>(
+                      future: fetchComments(post.id),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+                        if (!snapshot.hasData || snapshot.data!.isEmpty) return const Center(child: Text("No comments yet."));
+                        
+                        return ListView.builder(
+                          itemCount: snapshot.data!.length,
+                          itemBuilder: (context, index) {
+                            final comment = snapshot.data![index];
+                            return ListTile(
+                              leading: CircleAvatar(backgroundColor: navyBlue, child: const Icon(Icons.person, size: 16, color: Colors.white)),
+                              title: Text(comment.authorEmail, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              subtitle: Text(comment.content),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  const Divider(),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _commentController,
+                          decoration: const InputDecoration(hintText: "Add a comment...", border: InputBorder.none),
+                        ),
+                      ),
+                      _isSubmitting 
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                        : IconButton(
+                            icon: Icon(Icons.send, color: navyBlue),
+                            onPressed: () async {
+                              if (_commentController.text.trim().isEmpty) return;
+                              
+                              setSheetState(() => _isSubmitting = true);
+                              final success = await postComment(post, _commentController.text.trim());
+                              
+                              if (success) {
+                                _commentController.clear();
+                                // Re-fetching comments local to sheet
+                                setSheetState(() => _isSubmitting = false);
+                              } else {
+                                setSheetState(() => _isSubmitting = false);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("Failed to post comment")),
+                                );
+                              }
+                            },
+                          ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- Dynamic Time Helper ---
+  String _getRelativeTime(String? createdAtStr) {
+    if (createdAtStr == null) return 'Just now';
+    try {
+      final createdAt = DateTime.parse(createdAtStr);
+      final now = DateTime.now();
+      final diff = now.difference(createdAt);
+
+      if (diff.inSeconds < 60) return 'Just now';
+      if (diff.inMinutes < 60) return '${diff.inMinutes} minutes ago';
+      if (diff.inHours < 24) return '${diff.inHours} hours ago';
+      if (diff.inDays < 7) return '${diff.inDays} days ago';
+      if (diff.inDays < 30) {
+        final weeks = (diff.inDays / 7).floor();
+        return '$weeks ${weeks == 1 ? 'week' : 'weeks'} ago';
+      }
+      if (diff.inDays < 365) {
+        final months = (diff.inDays / 30).floor();
+        return '$months ${months == 1 ? 'month' : 'months'} ago';
+      }
+      final years = (diff.inDays / 365).floor();
+      return '$years ${years == 1 ? 'year' : 'years'} ago';
+    } catch (e) {
+      return 'Recently';
+    }
+  }
+
+  // --- Author Display Helper ---
+  String _getAuthorName(String email) {
+    if (email.isEmpty || email == 'Anonymous') return 'Anonymous';
+    return email.split('@').first;
   }
 
   @override
@@ -479,26 +727,6 @@ class _CommunityScreenState extends State<CommunityScreen>
   }
 
   Widget _buildPostItem(PostModel post) {
-    // Calculate time ago
-    String timeAgo = 'Just now';
-    if (post.createdAt != null) {
-      try {
-        final createdAt = DateTime.parse(post.createdAt!);
-        final now = DateTime.now();
-        final difference = now.difference(createdAt);
-
-        if (difference.inDays > 0) {
-          timeAgo = '${difference.inDays} days ago';
-        } else if (difference.inHours > 0) {
-          timeAgo = '${difference.inHours} hours ago';
-        } else if (difference.inMinutes > 0) {
-          timeAgo = '${difference.inMinutes} minutes ago';
-        }
-      } catch (e) {
-        debugPrint('Error parsing date: $e');
-      }
-    }
-
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -532,7 +760,7 @@ class _CommunityScreenState extends State<CommunityScreen>
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    post.title.isNotEmpty ? post.title : 'Anonymous',
+                    _getAuthorName(post.authorEmail),
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
@@ -580,41 +808,59 @@ class _CommunityScreenState extends State<CommunityScreen>
               ),
             ),
 
-          // Action Row - 4 Icons: Like, Comment, Share, Bookmark
+          // Action Row - Icons with Counts below them
           if (post.imageUrl.isNotEmpty && post.imageUrl != placeholder)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Like Icon
-                  GestureDetector(
-                    onTap: () => print('Like clicked'),
-                    child: Icon(
-                      post.likedByMe ? Icons.favorite : Icons.favorite_border,
-                      color: post.likedByMe ? Colors.red : Colors.black54,
-                      size: 24,
-                    ),
+                  Column(
+                    children: [
+                      GestureDetector(
+                        onTap: () => toggleLike(post),
+                        child: Icon(
+                          post.likedByMe ? Icons.favorite : Icons.favorite_border,
+                          color: post.likedByMe ? Colors.red : Colors.black54,
+                          size: 24,
+                        ),
+                      ),
+                      Text(
+                        '${post.likeCount}',
+                        style: const TextStyle(fontSize: 12, color: Colors.black54),
+                      ),
+                    ],
                   ),
                   const SizedBox(width: 20),
                   // Comment Icon
-                  GestureDetector(
-                    onTap: () => print('Comment clicked'),
-                    child: Icon(
-                      Icons.chat_bubble_outline,
-                      color: Colors.black54,
-                      size: 24,
-                    ),
+                  Column(
+                    children: [
+                      Icon(
+                        Icons.chat_bubble_outline,
+                        color: Colors.black54,
+                        size: 24,
+                      ),
+                      Text(
+                        '${post.commentCount}',
+                        style: const TextStyle(fontSize: 12, color: Colors.black54),
+                      ),
+                    ],
                   ),
                   const SizedBox(width: 20),
                   // Share Icon
                   GestureDetector(
-                    onTap: () => print('Share clicked'),
+                    onTap: () async {
+                      await Share.share('${post.title}\n\n${post.content}');
+                    },
                     child: Icon(Icons.send, color: Colors.black54, size: 24),
                   ),
                   const SizedBox(width: 20),
                   // Bookmark Icon
                   GestureDetector(
-                    onTap: () => print('Bookmark clicked'),
+                    onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Bookmark feature coming soon")),
+                    ),
                     child: Icon(
                       Icons.bookmark_border,
                       color: Colors.black54,
@@ -625,34 +871,60 @@ class _CommunityScreenState extends State<CommunityScreen>
               ),
             ),
 
-          // Content Section - Full description without maxLines constraint
+          // Content Section - Reduced top padding
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Post content without maxLines
-                Text(
-                  post.content,
-                  style: const TextStyle(color: Colors.black87, fontSize: 14),
+                // Post content with Show More logic
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final bool isExpanded = _expandedPostIds.contains(post.id);
+                    final String content = post.content;
+                    final bool canExpand = content.length > 120;
+                    
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          canExpand && !isExpanded 
+                              ? '${content.substring(0, 120)}...' 
+                              : content,
+                          style: const TextStyle(color: Colors.black87, fontSize: 14),
+                        ),
+                        if (canExpand)
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                if (isExpanded) {
+                                  _expandedPostIds.remove(post.id);
+                                } else {
+                                  _expandedPostIds.add(post.id);
+                                }
+                              });
+                            },
+                            child: Text(
+                              isExpanded ? "Show less" : "Show more",
+                              style: TextStyle(
+                                color: navyBlue, 
+                                fontWeight: FontWeight.bold, 
+                                fontSize: 12
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 8),
 
                 // Stats & Time
                 Row(
                   children: [
-                    Text(
-                      '${post.likeCount} likes',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
                     if (post.commentCount > 0)
                       GestureDetector(
-                        onTap: () => print('View all comments clicked'),
+                        onTap: () => _showCommentsBottomSheet(post),
                         child: Text(
                           'View all ${post.commentCount} comments',
                           style: TextStyle(
@@ -664,7 +936,7 @@ class _CommunityScreenState extends State<CommunityScreen>
                       ),
                     const Spacer(),
                     Text(
-                      timeAgo,
+                      _getRelativeTime(post.createdAt),
                       style: TextStyle(color: Colors.grey[500], fontSize: 11),
                     ),
                   ],
@@ -690,7 +962,7 @@ class _CommunityScreenState extends State<CommunityScreen>
                 const SizedBox(width: 8),
                 Expanded(
                   child: GestureDetector(
-                    onTap: () => print('Add comment clicked'),
+                    onTap: () => _showCommentsBottomSheet(post),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
