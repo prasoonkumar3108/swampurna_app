@@ -1,32 +1,57 @@
+
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'testimonial_screen.dart';
 import 'package:my_app/features/auth/models/onboarding_data.dart';
+import '../../../../core/services/auth_service.dart';
+import '../../models/period_setup_request.dart';
+import '../../../auth/presentation/screens/tracker_screen.dart';
 
 class CycleLengthPickerScreen extends StatefulWidget {
   final OnboardingData onboardingData;
+  final bool isEditMode;
 
-  const CycleLengthPickerScreen({super.key, required this.onboardingData});
+  const CycleLengthPickerScreen({
+    super.key,
+    required this.onboardingData,
+    this.isEditMode = false,
+  });
 
   @override
   State<CycleLengthPickerScreen> createState() =>
       _CycleLengthPickerScreenState();
 }
 
-class _CycleLengthPickerScreenState extends State<CycleLengthPickerScreen> {
-  // Use a controller to set initial value and manage the "snap"
+class _CycleLengthPickerScreenState
+    extends State<CycleLengthPickerScreen> {
   late FixedExtentScrollController _controller;
 
-  // Starting value (28 is index 7 in a list starting at 21)
   int selectedValue = 28;
-  final List<int> cycleOptions = List.generate(
-    20,
-    (index) => index + 21,
-  ); // 21 to 40
+
+  final List<int> cycleOptions =
+      List.generate(20, (index) => index + 21);
+
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = FixedExtentScrollController(initialItem: 7);
+
+    debugPrint(
+      'EDIT FLOW: CycleLengthPickerScreen | isEditMode = ${widget.isEditMode}',
+    );
+
+    selectedValue =
+        widget.onboardingData.cycleLength ?? 28;
+
+    final initialIndex =
+        cycleOptions.indexOf(selectedValue);
+
+    _controller = FixedExtentScrollController(
+      initialItem:
+          initialIndex >= 0 ? initialIndex : 7,
+    );
   }
 
   @override
@@ -35,65 +60,237 @@ class _CycleLengthPickerScreenState extends State<CycleLengthPickerScreen> {
     super.dispose();
   }
 
+  Future<void> _handleContinue() async {
+    if (!mounted) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final authService = AuthService();
+
+      final updatedData =
+          widget.onboardingData.copyWith(
+        cycleLength: selectedValue,
+      );
+
+      if (widget.isEditMode) {
+        // ==========================
+        // EDIT FLOW
+        // ==========================
+
+        debugPrint(
+          'EDIT FLOW: Updating period tracker',
+        );
+
+        final response =
+            await authService.updatePeriodTracker(
+          cycleLength: selectedValue,
+          periodLength:
+              updatedData.periodDuration ?? 8,
+        );
+
+        if (!mounted) return;
+
+        if (response.success) {
+          debugPrint(
+            'EDIT FLOW SUCCESS',
+          );
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => TrackerScreen(),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(
+            SnackBar(
+              content: Text(
+                response.error ??
+                    'Failed to update tracker',
+              ),
+            ),
+          );
+        }
+      } else {
+        // ==========================
+        // ONBOARDING FLOW
+        // ==========================
+
+        final request =
+            PeriodSetupRequest(
+          lastPeriodStartDate:
+              updatedData.lastPeriodDate,
+          hasNoIdea:
+              updatedData.hasNoIdea ?? false,
+          periodLengthDays:
+              updatedData.periodDuration ?? 8,
+          cycleLengthDays: selectedValue,
+        );
+
+        debugPrint(
+          'REQUEST PAYLOAD => ${jsonEncode(request.toJson())}',
+        );
+
+        final response =
+            await authService
+                .setupPeriodTracker(
+          request,
+        );
+
+        if (!mounted) return;
+
+        if (response.success) {
+          debugPrint(
+            'ONBOARDING FLOW SUCCESS',
+          );
+
+          Navigator.of(
+            context,
+            rootNavigator: true,
+          ).push(
+            MaterialPageRoute(
+              builder: (_) =>
+                  TestimonialScreen(
+                onboardingData:
+                    updatedData,
+              ),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(
+            SnackBar(
+              content: Text(
+                response.error ??
+                    'Setup failed. Please try again.',
+              ),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint(
+        'Cycle Length Screen Error: $e',
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(
+          SnackBar(
+            content: Text(
+              'Something went wrong: $e',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(
+          () => _isLoading = false,
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFDDF3F5), // Light blue background
+      backgroundColor:
+          const Color(0xFFDDF3F5),
       body: SafeArea(
         child: Column(
           children: [
             const SizedBox(height: 60),
+
             const Text(
               "What is your usual cycle\nlength?",
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF2B3A8F), // Deep navy
+                fontWeight:
+                    FontWeight.bold,
+                color:
+                    Color(0xFF2B3A8F),
               ),
             ),
+
             const Spacer(),
 
-            // Picker Section
             SizedBox(
               height: 350,
               child: Stack(
-                alignment: Alignment.center,
+                alignment:
+                    Alignment.center,
                 children: [
-                  // The subtle selection overlay bar
                   Container(
                     height: 70,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF0EAEB).withOpacity(0.6),
+                    width:
+                        double.infinity,
+                    decoration:
+                        BoxDecoration(
+                      color: const Color(
+                        0xFFF0EAEB,
+                      ).withOpacity(
+                        0.6,
+                      ),
                     ),
                   ),
 
-                  // The actual Wheel Picker
-                  ListWheelScrollView.useDelegate(
-                    controller: _controller,
-                    itemExtent: 70, // Matches container height
-                    perspective: 0.006,
-                    diameterRatio: 2.0,
-                    physics: const FixedExtentScrollPhysics(),
-                    onSelectedItemChanged: (index) {
+                  ListWheelScrollView
+                      .useDelegate(
+                    controller:
+                        _controller,
+                    itemExtent: 70,
+                    perspective:
+                        0.006,
+                    diameterRatio:
+                        2.0,
+                    physics:
+                        const FixedExtentScrollPhysics(),
+                    onSelectedItemChanged:
+                        (index) {
                       setState(() {
-                        selectedValue = cycleOptions[index];
+                        selectedValue =
+                            cycleOptions[
+                                index];
                       });
                     },
-                    childDelegate: ListWheelChildBuilderDelegate(
-                      childCount: cycleOptions.length,
-                      builder: (context, index) {
-                        final isSelected = selectedValue == cycleOptions[index];
+                    childDelegate:
+                        ListWheelChildBuilderDelegate(
+                      childCount:
+                          cycleOptions
+                              .length,
+                      builder:
+                          (context,
+                              index) {
+                        final isSelected =
+                            selectedValue ==
+                                cycleOptions[
+                                    index];
+
                         return Center(
                           child: Text(
-                            cycleOptions[index].toString(),
-                            style: TextStyle(
-                              fontSize: 34,
-                              fontWeight: FontWeight.bold,
+                            cycleOptions[
+                                    index]
+                                .toString(),
+                            style:
+                                TextStyle(
+                              fontSize:
+                                  34,
+                              fontWeight:
+                                  FontWeight
+                                      .bold,
                               color: isSelected
-                                  ? const Color(0xFF2B3A8F)
-                                  : const Color(0xFF2B3A8F).withOpacity(0.3),
+                                  ? const Color(
+                                      0xFF2B3A8F,
+                                    )
+                                  : const Color(
+                                      0xFF2B3A8F,
+                                    ).withOpacity(
+                                      0.3,
+                                    ),
                             ),
                           ),
                         );
@@ -106,38 +303,63 @@ class _CycleLengthPickerScreenState extends State<CycleLengthPickerScreen> {
 
             const Spacer(),
 
-            // "Continue" Button
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
+              padding:
+                  const EdgeInsets
+                      .symmetric(
+                horizontal: 40,
+                vertical: 30,
+              ),
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2B3A8F),
-                  minimumSize: const Size(double.infinity, 60),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
+                style:
+                    ElevatedButton
+                        .styleFrom(
+                  backgroundColor:
+                      const Color(
+                    0xFF2B3A8F,
+                  ),
+                  minimumSize:
+                      const Size(
+                    double.infinity,
+                    60,
+                  ),
+                  shape:
+                      RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius
+                            .circular(
+                      30,
+                    ),
                   ),
                   elevation: 0,
                 ),
-                onPressed: () {
-                  // Example navigation logic
-                  debugPrint("Moving forward with: $selectedValue days");
-
-                  // Update onboarding data with cycle length
-                  final updatedData = widget.onboardingData.copyWith(
-                    cycleLength: selectedValue,
-                  );
-
-                  Navigator.of(context, rootNavigator: true).push(
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          TestimonialScreen(onboardingData: updatedData),
-                    ),
-                  );
-                },
-                child: const Text(
-                  "Continue",
-                  style: TextStyle(fontSize: 18, color: Colors.white),
-                ),
+                onPressed:
+                    _isLoading
+                        ? null
+                        : _handleContinue,
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 22,
+                        width: 22,
+                        child:
+                            CircularProgressIndicator(
+                          strokeWidth:
+                              2,
+                          color: Colors
+                              .white,
+                        ),
+                      )
+                    : Text(
+                        widget.isEditMode
+                            ? "Update Tracker"
+                            : "Set Tracker",
+                        style:
+                            const TextStyle(
+                          fontSize: 18,
+                          color: Colors
+                              .white,
+                        ),
+                      ),
               ),
             ),
           ],

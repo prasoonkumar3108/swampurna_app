@@ -4,8 +4,13 @@ import 'package:my_app/features/auth/models/onboarding_data.dart';
 
 class PeriodDurationPickerScreen extends StatefulWidget {
   final OnboardingData onboardingData;
+  final bool isEditMode;
 
-  const PeriodDurationPickerScreen({super.key, required this.onboardingData});
+  const PeriodDurationPickerScreen({
+    super.key,
+    required this.onboardingData,
+    this.isEditMode = false,
+  });
 
   @override
   State<PeriodDurationPickerScreen> createState() =>
@@ -22,6 +27,12 @@ class _PeriodDurationPickerScreenState
   int _selectedDays = 8; // Default selected value
   final FixedExtentScrollController _scrollController =
       FixedExtentScrollController(initialItem: 7); // Index 7 is value 8
+
+  @override
+  void initState() {
+    super.initState();
+    debugPrint('EDIT FLOW: PeriodDurationPickerScreen | isEditMode = ${widget.isEditMode}');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -126,6 +137,7 @@ class _PeriodDurationPickerScreenState
   void _handleNavigation() {
     debugPrint("Navigating with: Duration: $_selectedDays days");
 
+    debugPrint('EDIT FLOW STEP 2: Duration -> Cycle');
     // Update onboarding data with period duration
     final updatedData = widget.onboardingData.copyWith(
       periodDuration: _selectedDays,
@@ -134,8 +146,10 @@ class _PeriodDurationPickerScreenState
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) =>
-            CycleLengthPickerScreen(onboardingData: updatedData),
+        builder: (context) => CycleLengthPickerScreen(
+          onboardingData: updatedData,
+          isEditMode: widget.isEditMode,
+        ),
       ),
     );
   }

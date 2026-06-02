@@ -8,11 +8,12 @@ import 'pin_screen.dart';
 import 'package:my_app/features/auth/models/onboarding_data.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../core/services/token_storage_service.dart';
+import 'tracker_screen.dart';
 
 class OtpScreen extends StatefulWidget {
   final String email;
   final bool isFromSignup;
-
+  //final bool isFromLogin;
   const OtpScreen({super.key, required this.email, required this.isFromSignup});
 
   @override
@@ -88,6 +89,7 @@ class _OtpScreenState extends State<OtpScreen> {
 
     try {
       debugPrint(
+        'duuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu'
         '🔐 Verifying OTP for: ${widget.email} (${widget.isFromSignup ? 'Signup' : 'Login'})',
       );
 
@@ -133,6 +135,7 @@ class _OtpScreenState extends State<OtpScreen> {
 
           // Conditional navigation based on isFromSignup
           if (widget.isFromSignup) {
+             debugPrint('Signupuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu');
             // Case 1: From signup - TEMPORARILY BYPASS PIN and navigate directly to ConfirmationScreen
             // Original PIN navigation (commented out):
             /*
@@ -161,16 +164,12 @@ class _OtpScreenState extends State<OtpScreen> {
             );
           } else {
             // Case 2: From login - navigate to ConfirmationScreen
+              debugPrint('Loginupuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu');
             final otp = _otpControllers.map((c) => c.text).join();
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => ConfirmationScreen(
-                  onboardingData: OnboardingData(
-                    email: widget.email,
-                    otp: otp, // Use the verified OTP
-                  ),
-                ),
+                builder: (_) => TrackerScreen()
               ),
             );
           }

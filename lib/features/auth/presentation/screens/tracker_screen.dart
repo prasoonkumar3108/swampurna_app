@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/services/auth_service.dart';
+import 'period_calendar_screen.dart';
+import 'package:my_app/features/auth/models/onboarding_data.dart';
 
 // Keep these only if the files exist, otherwise the consolidated classes below take over
 import 'customize_period_screen.dart';
@@ -613,7 +615,31 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
   Widget _buildActionBtn(String text) {
     return ElevatedButton(
-      onPressed: () => navigateTo(const CustomizePeriod()),
+      onPressed: () {
+        if (text == "Edit period dates") {
+          debugPrint('STEP 1: Tracker -> Calendar');
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PeriodCalendarScreen(
+                onboardingData: OnboardingData(
+                  email: '', // Not required for the setup endpoint
+                  otp: '',   // Not required for the setup endpoint
+                  lastPeriodDate: DateTime.now(),
+                  periodDuration: _periodLengthDays,
+                  cycleLength: _cycleLengthDays,
+                ),
+                isEditMode: true,
+              ),
+            ),
+          ).then((_) {
+            // Refresh data when returning from the edit flow
+            _fetchPeriodTrackerSetup();
+          });
+        } else {
+          navigateTo(const CustomizePeriod());
+        }
+      },
       style: ElevatedButton.styleFrom(
         backgroundColor: navyBlue,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),

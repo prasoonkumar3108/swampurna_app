@@ -32,11 +32,11 @@ class PeriodSetupRequest {
       startDateStr = formatter.format(lastPeriodStartDate!);
       
       // formula: [last_period_start_date + period_length_days - 1 day]
-      final DateTime endDate = lastPeriodStartDate!.add(Duration(days: periodLengthDays - 1));
+      final DateTime endDate = lastPeriodStartDate!.add(Duration(days: periodLengthDays - 0));
       endDateStr = formatter.format(endDate);
 
       // Generate array of string dates from start to end
-      for (int i = 0; i < periodLengthDays; i++) {
+      for (int i = 0; i <= periodLengthDays; i++) {
         selectedDates.add(formatter.format(lastPeriodStartDate!.add(Duration(days: i))));
       }
     }

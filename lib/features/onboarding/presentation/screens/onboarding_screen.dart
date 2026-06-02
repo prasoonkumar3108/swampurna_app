@@ -25,6 +25,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     try {
       final authService = AuthService();
 
+      print('ONBOARDING_DATE = ${widget.onboardingData?.lastPeriodDate?.toIso8601String()}');
+
       // Prepare the request with data (demonstrating safe defaults for journey completion)
       final request = PeriodSetupRequest(
         lastPeriodStartDate: widget.onboardingData?.lastPeriodDate,
@@ -33,11 +35,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         cycleLengthDays: widget.onboardingData?.cycleLength ?? 28,
       );
 
+      print('REQUEST_DATE = ${request.lastPeriodStartDate}');
+
       // Debug log the exact payload being sent
       final payload = request.toJson();
-      debugPrint('FINAL PERIOD SETUP PAYLOAD');
+      print('FINAL_PAYLOAD = ${jsonEncode(payload)}');
       debugPrint(jsonEncode(payload));
 
+      debugPrint('CALLING POST SETUP API');
       final response = await authService.setupPeriodTracker(request);
 
       if (mounted) {

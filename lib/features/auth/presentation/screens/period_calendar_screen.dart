@@ -5,8 +5,13 @@ import 'package:my_app/features/auth/models/onboarding_data.dart';
 
 class PeriodCalendarScreen extends StatefulWidget {
   final OnboardingData onboardingData;
+  final bool isEditMode;
 
-  const PeriodCalendarScreen({super.key, required this.onboardingData});
+  const PeriodCalendarScreen({
+    super.key,
+    required this.onboardingData,
+    this.isEditMode = false,
+  });
 
   @override
   State<PeriodCalendarScreen> createState() => _PeriodCalendarScreenState();
@@ -17,24 +22,34 @@ class _PeriodCalendarScreenState extends State<PeriodCalendarScreen> {
   static const Color _navyBlue = Color(0xFF1A237E);
   static const Color _pinkBox = Color(0xFFF3A0CE);
 
-  final List<DateTime> _selectedDates = [];
+  DateTime? _selectedDate;
   late ScrollController _scrollController;
+  late DateTime _focusedDay;
 
-  bool _isNoIdeaSelected = false;
+  late bool _isNoIdeaSelected;
   final List<DateTime> _months = [];
 
   @override
   void initState() {
     super.initState();
-    // Estimated height of one month section (~380px) to center index 6 (current month)
-    _scrollController = ScrollController(initialScrollOffset: 6 * 380.0);
+    debugPrint('EDIT FLOW: PeriodCalendarScreen | isEditMode = ${widget.isEditMode}');
+    _focusedDay = DateTime.now();
+    _selectedDate = widget.onboardingData.lastPeriodDate;
+    _isNoIdeaSelected = widget.onboardingData.hasNoIdea;
+
+    _scrollController = ScrollController();
     _generate12Months();
+
+    // Ensure calendar opens at the current month on load
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToCurrentMonth();
+    });
   }
 
   void _generate12Months() {
-    DateTime now = DateTime.now();
-    for (int i = -6; i <= 6; i++) {
-      _months.add(DateTime(now.year, now.month + i, 1));
+    // Expanded range to ensure future years like 2026/2027 are reachable from current date
+    for (int i = -12; i <= 24; i++) {
+      _months.add(DateTime(_focusedDay.year, _focusedDay.month + i, 1));
     }
   }
 
@@ -51,6 +66,29 @@ class _PeriodCalendarScreenState extends State<PeriodCalendarScreen> {
         a.day == b.day;
   }
 
+  void _scrollToCurrentMonth() {
+    if (!mounted) return;
+
+    // Since generation starts at -12 months, the current month (i=0) is at index 12.
+    // We calculate the exact height of the first 12 months to jump precisely to the current one.
+    double totalOffset = 0;
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double cellHeight = (screenWidth - 20) / 7; // Accounting for horizontal padding
+
+    for (int i = 0; i < 12; i++) {
+      DateTime m = _months[i];
+      int days = DateTime(m.year, m.month + 1, 0).day;
+      int offset = m.weekday % 7;
+      int rows = ((days + offset) / 7).ceil();
+
+      // MonthSection height components:
+      // Header (~40.4) + WeekdayHeader (35) + Grid (rows * cellHeight) + Bottom Padding (30)
+      totalOffset += (40.4 + 35 + (rows * cellHeight) + 30);
+    }
+
+    _scrollController.jumpTo(totalOffset);
+  }
+
   // Common Navigation Helper
   void _navigateToDurationPicker(DateTime? date) {
     final updatedData = widget.onboardingData.copyWith(
@@ -58,11 +96,14 @@ class _PeriodCalendarScreenState extends State<PeriodCalendarScreen> {
       hasNoIdea: _isNoIdeaSelected,
     );
 
+    debugPrint('EDIT FLOW STEP 1: Calendar -> Duration');
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) =>
-            PeriodDurationPickerScreen(onboardingData: updatedData),
+        builder: (context) => PeriodDurationPickerScreen(
+          onboardingData: updatedData,
+          isEditMode: widget.isEditMode,
+        ),
       ),
     );
   }
@@ -70,12 +111,9 @@ class _PeriodCalendarScreenState extends State<PeriodCalendarScreen> {
   void _onDateClicked(DateTime date) {
     setState(() {
       _isNoIdeaSelected = false;
-      final existingIndex = _selectedDates.indexWhere((d) => isSameDay(d, date));
-      if (existingIndex >= 0) {
-        _selectedDates.removeAt(existingIndex);
-      } else {
-        _selectedDates.add(date);
-      }
+      print('TAPPED_DATE = $date');
+      _selectedDate = date;
+      print('SELECTED_DATE_STATE = $_selectedDate');
     });
   }
 
@@ -86,20 +124,18 @@ class _PeriodCalendarScreenState extends State<PeriodCalendarScreen> {
   }
 
   void _onContinue() {
-    if (_selectedDates.isEmpty) {
+    if (_selectedDate == null) {
       _showSnackBar("At least 1 date must be selected.");
       return;
     }
-    // Pass the earliest selected date to maintain compatibility with single-date model logic
-    final earliestDate = _selectedDates.reduce((a, b) => a.isBefore(b) ? a : b);
-    _navigateToDurationPicker(earliestDate);
+    _navigateToDurationPicker(_selectedDate);
   }
 
   // FIX: handleNoIdea added and implemented
   void _handleNoIdea() {
     setState(() {
       _isNoIdeaSelected = true;
-      _selectedDates.clear();
+      _selectedDate = null;
     });
     // Navigation for 'No Idea' - passing null as date
     _navigateToDurationPicker(null);
@@ -229,7 +265,7 @@ class _PeriodCalendarScreenState extends State<PeriodCalendarScreen> {
         if (index < offset) return const SizedBox.shrink();
         int dayValue = index - offset + 1;
         final date = DateTime(monthDate.year, monthDate.month, dayValue);
-        final isSelected = _selectedDates.any((d) => isSameDay(d, date));
+        final isSelected = isSameDay(_selectedDate, date);
 
         return InkResponse(
           onTap: () => _onDateClicked(date),
@@ -255,7 +291,7 @@ class _PeriodCalendarScreenState extends State<PeriodCalendarScreen> {
   }
 
   Widget _buildContinueButton() {
-    final bool isValid = _selectedDates.isNotEmpty;
+    final bool isValid = _selectedDate != null;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),

@@ -866,6 +866,31 @@ class AuthService {
     }
   }
 
+  /// Update period tracker data during edit flow
+  Future<ApiResponse<Map<String, dynamic>>> updatePeriodTracker({
+    required int cycleLength,
+    required int periodLength,
+  }) async {
+    try {
+      debugPrint('🚀 [PERIOD TRACKER UPDATE] Updating data...');
+      final body = {
+        'cycle_length_days': cycleLength,
+        'period_length_days': periodLength,
+        'notes': 'Updated',
+      };
+
+      return await _makeRequest<Map<String, dynamic>>(
+        'PUT',
+        '/period-tracker/setup',
+        body: body,
+        requiresAuth: true,
+      );
+    } catch (e) {
+      debugPrint('❌ Period tracker update error: $e');
+      return ApiResponse.error('Failed to update period tracker: ${e.toString()}');
+    }
+  }
+
   /// Get period tracker setup data
   Future<ApiResponse<Map<String, dynamic>>> getPeriodTrackerSetup() async {
     try {
@@ -983,11 +1008,12 @@ class AuthService {
 
   /// Create a new Cycle Snap
   Future<ApiResponse<Map<String, dynamic>>> createCycleSnap({
-    required String title,
-    required String description,
-    File? mediaFile,
-    String? mediaUrl,
-  }) async {
+  required String title,
+  required String description,
+  File? mediaFile,
+  String? mediaUrl,
+  String mediaType = 'image',
+}) async {
     try {
       debugPrint('🔄 Creating Cycle Snap...');
       debugPrint('📝 Title: $title');
@@ -1001,7 +1027,7 @@ class AuthService {
         'description': description,
         'media_type':
             (mediaFile != null || (mediaUrl != null && mediaUrl.isNotEmpty))
-            ? 'image'
+            ? mediaType
             : 'text',
       };
 

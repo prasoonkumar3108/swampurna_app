@@ -4,12 +4,14 @@ import 'package:my_app/features/auth/models/onboarding_data.dart';
 import '../../../../core/services/auth_service.dart';
 
 class PregnancySelectionScreen extends StatefulWidget {
+  final OnboardingData onboardingData;
   final int selectedBirthYear;
   final String onboardingSource;
   final String usingFor;
 
   const PregnancySelectionScreen({
     super.key,
+    required this.onboardingData,
     required this.selectedBirthYear,
     required this.onboardingSource,
     required this.usingFor,
@@ -47,9 +49,7 @@ class _PregnancySelectionScreenState extends State<PregnancySelectionScreen> {
 
   // Skip onboarding - direct navigation without API
   void _skipOnboarding() {
-    final updatedData = OnboardingData(
-      email: "",
-      otp: "",
+    final updatedData = widget.onboardingData.copyWith(
       source: widget.onboardingSource,
       birthYear: widget.selectedBirthYear,
       isPregnant: false,
@@ -128,9 +128,7 @@ class _PregnancySelectionScreenState extends State<PregnancySelectionScreen> {
           _isLoading = false;
         });
 
-        final updatedData = OnboardingData(
-          email: "",
-          otp: "",
+        final updatedData = widget.onboardingData.copyWith(
           source: fixedOnboardingSource,
           birthYear: widget.selectedBirthYear,
           isPregnant: pregnancyStatus == "yes_i_am",

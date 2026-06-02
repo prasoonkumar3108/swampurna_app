@@ -31,6 +31,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   File? _selectedMedia;
   bool _isLoading = false;
   bool _isUploading = false;
+  bool _isVideo = false;
 
   @override
   void dispose() {
@@ -39,9 +40,37 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     super.dispose();
   }
 
+  // Future<void> _pickMedia() async {
+  //   try {
+  //     final pickedFile = await _imagePicker.pickImage(
+  //       source: ImageSource.gallery,
+  //       maxWidth: 1920,
+  //       maxHeight: 1080,
+  //       imageQuality: 85,
+  //     );
+
+  //     if (pickedFile != null) {
+  //       setState(() {
+  //         _selectedMedia = File(pickedFile.path);
+  //       });
+  //     }
+  //   } catch (e) {
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(
+  //           content: Text('Error picking media: $e'),
+  //           backgroundColor: Colors.red,
+  //         ),
+  //       );
+  //     }
+  //   }
+  // }
+
   Future<void> _pickMedia() async {
-    try {
-      final pickedFile = await _imagePicker.pickImage(
+  try {
+    // Recent Post -> only image
+    if (widget.postType == PostType.recentPost) {
+      final XFile? pickedFile = await _imagePicker.pickImage(
         source: ImageSource.gallery,
         maxWidth: 1920,
         maxHeight: 1080,
@@ -51,19 +80,76 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       if (pickedFile != null) {
         setState(() {
           _selectedMedia = File(pickedFile.path);
+          _isVideo = false;
         });
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error picking media: $e'),
-            backgroundColor: Colors.red,
+      return;
+    }
+
+    // Cycle Snap -> Image or Video
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.image),
+                title: const Text('Select Image'),
+                onTap: () async {
+                  Navigator.pop(context);
+
+                  final XFile? pickedFile = await _imagePicker.pickImage(
+                    source: ImageSource.gallery,
+                    maxWidth: 1920,
+                    maxHeight: 1080,
+                    imageQuality: 85,
+                  );
+
+                  if (pickedFile != null) {
+                    setState(() {
+                      _selectedMedia = File(pickedFile.path);
+                      _isVideo = false;
+                    });
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.videocam),
+                title: const Text('Select Video'),
+                onTap: () async {
+                  Navigator.pop(context);
+
+                  final XFile? pickedFile =
+                      await _imagePicker.pickVideo(
+                    source: ImageSource.gallery,
+                  );
+
+                  if (pickedFile != null) {
+                    setState(() {
+                      _selectedMedia = File(pickedFile.path);
+                      _isVideo = true;
+                    });
+                  }
+                },
+              ),
+            ],
           ),
         );
-      }
+      },
+    );
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error picking media: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
+}
 
   Future<String?> _uploadToBackendAPI(File file) async {
     try {
@@ -93,16 +179,29 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           .extension(file.path)
           .replaceAll('.', ''); // jpg, png, etc.
 
+      // request.files.add(
+      //   await http.MultipartFile.fromPath(
+      //     'file',
+      //     file.path,
+      //     contentType: MediaType(
+      //       'image',
+      //       extension == 'jpg' ? 'jpeg' : extension,
+      //     ),
+      //   ),
+      // );
+
       request.files.add(
-        await http.MultipartFile.fromPath(
-          'file',
-          file.path,
-          contentType: MediaType(
+  await http.MultipartFile.fromPath(
+    'file',
+    file.path,
+    contentType: _isVideo
+        ? MediaType('video', extension)
+        : MediaType(
             'image',
             extension == 'jpg' ? 'jpeg' : extension,
           ),
-        ),
-      );
+  ),
+);
 
       debugPrint('--- UPLOAD ATTEMPT ---');
       debugPrint('Token used: $token');
@@ -200,6 +299,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               description: _descriptionController.text.trim(),
               mediaFile: null, // Not needed since we're passing URL
               mediaUrl: imageUrl, // Backend expects media_url
+              mediaType: _isVideo ? 'video' : 'image',
             );
 
       if (mounted) {

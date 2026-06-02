@@ -11,13 +11,14 @@ class PeriodSetupRequest {
   final int postPeriodDays = 2;
   final int ovulationStartDay = 11;
   final int ovulationWindowDays = 5;
-  final String notes = "Initial setup";
+  final String notes;
 
   PeriodSetupRequest({
     this.lastPeriodStartDate,
     required this.periodLengthDays,
     required this.cycleLengthDays,
     required this.hasNoIdea,
+    this.notes = "Initial setup",
   });
 
   Map<String, dynamic> toJson() {

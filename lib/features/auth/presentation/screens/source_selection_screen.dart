@@ -63,6 +63,7 @@ class _SourceSelectionScreenState extends State<SourceSelectionScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => PregnancySelectionScreen(
+          onboardingData: widget.onboardingData,
           selectedBirthYear: DateTime.now().year - 25, // Default age 25
           onboardingSource: option, // Use actual user selected option
           usingFor: 'self',

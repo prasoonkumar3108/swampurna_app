@@ -466,36 +466,43 @@ class _TestimonialScreenState extends State<TestimonialScreen> {
     );
   }
 
-  Widget _buildNextButton(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 30.0),
-      child: SizedBox(
-        width: 250,
-        height: 55,
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF252876),
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30),
-            ),
-          ),
-          onPressed: () {
-            // Navigate to OnboardingScreen for cycle visualization
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) =>
-                    OnboardingScreen(onboardingData: widget.onboardingData),
+Widget _buildNextButton(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.only(
+        top: 25.0,     // 👈 Button ke upar ki margin (ab chipkega nahi)
+        bottom: 30.0,  // 👈 Bottom bar ki height badhane ke liye padding
+        left: 20.0,
+        right: 20.0,
+      ),
+      color: Colors.transparent, 
+      child: Center(
+        child: SizedBox(
+          width: 250,
+          height: 55,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF252876),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
               ),
-            );
-          },
-          child: const Text(
-            "Next",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      OnboardingScreen(onboardingData: widget.onboardingData),
+                ),
+              );
+            },
+            child: const Text(
+              "Next",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ),
