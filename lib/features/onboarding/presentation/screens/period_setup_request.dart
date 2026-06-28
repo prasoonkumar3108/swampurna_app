@@ -35,6 +35,7 @@ class PeriodSetupRequest {
       final DateTime endDate = lastPeriodStartDate!.add(Duration(days: periodLengthDays - 0));
       endDateStr = formatter.format(endDate);
 
+
       // Generate array of string dates from start to end
       for (int i = 0; i <= periodLengthDays; i++) {
         selectedDates.add(formatter.format(lastPeriodStartDate!.add(Duration(days: i))));

@@ -10,17 +10,17 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-  intl: ^0.20.2 # <--- Dynamic dates ke liye added
-  shared_preferences: ^2.2.2 # <--- Token storage ke liye added
-  http: ^1.6.0 # <--- API calls ke liye added
-  cached_network_image: ^3.3.1 # <--- Image caching ke liye added
-  image_picker: ^1.0.7 # <--- Image picking ke liye added
-  url_launcher: ^6.2.4 # <--- Google Maps integration ke liye added
-  dio: ^5.4.3+1 # <--- Multipart form data ke liye added
-  webview_flutter: ^4.4.2 # <--- WebView integration ke liye added
-  supabase_flutter: ^2.0.0 # <--- Supabase integration ke liye added
-  http_parser: ^4.0.2 # <--- MIME type handling ke liye added
-  path: ^1.8.3 # <--- File extension handling ke liye added
+  intl: ^0.20.2 # <--- Dynamic dates 
+  shared_preferences: ^2.2.2 # <--- Token storage 
+  http: ^1.6.0 # <--- API calls 
+  cached_network_image: ^3.3.1 # <--- Image caching 
+  image_picker: ^1.0.7 # <--- Image picking 
+  url_launcher: ^6.2.4 # <--- Google Maps integration 
+  dio: ^5.4.3+1 # <--- Multipart form data 
+  webview_flutter: ^4.4.2 # <--- WebView integration 
+  supabase_flutter: ^2.0.0 # <--- Supabase integration 
+  http_parser: ^4.0.2 # <--- MIME type handling 
+  path: ^1.8.3 # <--- File extension handling 
   share_plus: ^10.0.2
 
 dev_dependencies:

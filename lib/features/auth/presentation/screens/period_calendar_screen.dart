@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'period_duration_picker_screen.dart';
 import 'package:my_app/features/auth/models/onboarding_data.dart';
+import '../../../auth/presentation/screens/tracker_screen.dart';
 
 class PeriodCalendarScreen extends StatefulWidget {
   final OnboardingData onboardingData;
@@ -108,6 +109,25 @@ class _PeriodCalendarScreenState extends State<PeriodCalendarScreen> {
     );
   }
 
+void _navigateToTracker(DateTime? date) {
+    // ignore: unused_local_variable
+    final updatedData = widget.onboardingData.copyWith(
+      lastPeriodDate: date,
+      hasNoIdea: _isNoIdeaSelected,
+    );
+
+    debugPrint('EDIT FLOW STEP 1: Calendar -> TRACKER SCREEN (Stack Cleared)');
+    
+    // push की जगह pushAndRemoveUntil का उपयोग करें ताकि पुराने सारे ऑनबोर्डिंग रूट्स हट जाएं
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const TrackerScreen(),
+      ),
+      (route) => false, // यह लाइन पिछले सभी स्क्रीन्स को बैकस्टैक से डिलीट कर देगी
+    );
+  }
+
   void _onDateClicked(DateTime date) {
     setState(() {
       _isNoIdeaSelected = false;
@@ -131,14 +151,14 @@ class _PeriodCalendarScreenState extends State<PeriodCalendarScreen> {
     _navigateToDurationPicker(_selectedDate);
   }
 
-  // FIX: handleNoIdea added and implemented
+
   void _handleNoIdea() {
     setState(() {
       _isNoIdeaSelected = true;
       _selectedDate = null;
     });
-    // Navigation for 'No Idea' - passing null as date
-    _navigateToDurationPicker(null);
+    
+    _navigateToTracker(null);
   }
 
   @override
@@ -204,7 +224,7 @@ class _PeriodCalendarScreenState extends State<PeriodCalendarScreen> {
       children: [
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 5),
           decoration: const BoxDecoration(
             border: Border.symmetric(
               horizontal: BorderSide(color: _navyBlue, width: 1.2),

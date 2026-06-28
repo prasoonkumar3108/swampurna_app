@@ -469,8 +469,8 @@ class _TestimonialScreenState extends State<TestimonialScreen> {
 Widget _buildNextButton(BuildContext context) {
     return Container(
       padding: const EdgeInsets.only(
-        top: 25.0,     // 👈 Button ke upar ki margin (ab chipkega nahi)
-        bottom: 30.0,  // 👈 Bottom bar ki height badhane ke liye padding
+        top: 25.0,     // 👈  Next button top margin from tab  
+        bottom: 30.0,  // 👈  Bottom bar height 
         left: 20.0,
         right: 20.0,
       ),
