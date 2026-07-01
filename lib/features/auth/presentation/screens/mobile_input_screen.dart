@@ -1,10 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'otp_screen.dart';
 import 'signup_screen.dart';
-import 'login_with_pin_screen.dart';
-import 'pin_screen.dart';
 import '../../../../core/services/auth_service.dart';
 
 class MobileInputScreen extends StatefulWidget {
@@ -15,472 +12,380 @@ class MobileInputScreen extends StatefulWidget {
 }
 
 class _MobileInputScreenState extends State<MobileInputScreen> {
-  static const Color _primaryColor = Color(0xFF2E3192);
-  static const Color _bgColor = Color(0xFFD1EDF2);
+  // 100% Match Saturated Dynamic Light Theme Palette
+  static const Color _screenBgColor = Color(0xFFE2F4FF);    // Icy soft blue page background
+  static const Color _cardBgColor = Color(0xFFFFFFFF);      // Clean stark white card
+  static const Color _brandBlue = Color(0xFF4FA3DC);        // Precise blueprint sky-blue color
+  static const Color _textColorDark = Color(0xFF2C6B93);    // Muted deep blue text
+  static const Color _textHintColor = Color(0xFF638FA9);    // Subtle grayed out label hint
+  static const Color _inputFillColor = Color(0xFFD3EDFC);   // Saturated background tone inside input box
 
   final TextEditingController _mobileController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
 
   bool _isLoading = false;
   String? _errorMessage;
 
-  // Build popup content widget for better isolation
   Widget _buildLoginMethodPopupContent(String email) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Header with close button
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 5,
+            decoration: BoxDecoration(
+              color: _textColorDark.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
                 'Choose Login Method',
                 style: TextStyle(
-                  color: _primaryColor,
-                  fontSize: 20,
+                  color: _textColorDark,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close, color: _primaryColor),
+                icon: const Icon(Icons.close, color: _textColorDark),
+                style: IconButton.styleFrom(
+                  backgroundColor: _textColorDark.withOpacity(0.1),
+                ),
               ),
             ],
           ),
-        ),
-
-        const SizedBox(height: 20),
-
-        // Login with OTP button
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: SizedBox(
+          const SizedBox(height: 30),
+          SizedBox(
             width: double.infinity,
-            height: 55,
-            child: ElevatedButton(
-              onPressed: () async {
-                Navigator.pop(context); // Close popup first
-                await _sendOtpAndNavigate(email); // Then navigate
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _primaryColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                elevation: 0,
+            height: 56,
+            child: Container(
+              decoration: BoxDecoration(
+                color: _brandBlue,
+                borderRadius: BorderRadius.circular(16),
               ),
-              child: const Text(
-                'Login with OTP',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+              child: ElevatedButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await _sendOtpAndNavigate(email);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
-              ),
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 16),
-
-        // Login with PIN button (TEMPORARILY COMMENTED OUT)
-        /*
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: SizedBox(
-            width: double.infinity,
-            height: 55,
-            child: OutlinedButton(
-              onPressed: () async {
-                Navigator.pop(context); // Close popup first
-
-                // Check user PIN status before navigation
-                setState(() {
-                  _isLoading = true;
-                });
-
-                try {
-                  final pinStatusResponse = await AuthService()
-                      .checkUserPinStatus();
-
-                  if (!mounted) return;
-
-                  setState(() {
-                    _isLoading = false;
-                  });
-
-                  // Extract pin_enabled from response
-                  bool pinEnabled = true; // Safe fallback
-                  if (pinStatusResponse.success &&
-                      pinStatusResponse.data != null &&
-                      pinStatusResponse.data?['user'] != null) {
-                    pinEnabled =
-                        pinStatusResponse.data?['user']?['pin_enabled'] ?? true;
-                  }
-
-                  debugPrint(
-                    '🔐 PIN Status: ${pinEnabled ? "Enabled" : "Not Enabled"}',
-                  );
-
-                  if (pinEnabled) {
-                    // CASE B: User has PIN - Navigate to LoginWithPinScreen
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => LoginWithPinScreen(email: email),
-                      ),
-                    );
-                  } else {
-                    // CASE A: User hasn't set PIN - Navigate to Set PIN screen
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => PinScreen(
-                          email: email,
-                          initialMode: PinMode.SET_PIN,
-                        ),
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (!mounted) return;
-
-                  setState(() {
-                    _isLoading = false;
-                  });
-
-                  // Fallback: Assume PIN is enabled (safe login path)
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => LoginWithPinScreen(email: email),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.message_rounded, size: 22),
+                    SizedBox(width: 12),
+                    Text(
+                      'Login with OTP',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
-                  );
-                }
-              },
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: _primaryColor, width: 2),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: const Text(
-                'Login with PIN',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: _primaryColor,
+                  ],
                 ),
               ),
             ),
           ),
-          ),
-        */
-        const SizedBox(height: 80),
-      ],
+          const SizedBox(height: 40),
+        ],
+      ),
     );
   }
 
-  // Show selection popup for login methods
   void _showLoginMethodPopup(String email) {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // Zaroori - Foolproof height control
-      backgroundColor: Colors.transparent, // For rounded corners of child
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent, 
       builder: (BuildContext bc) {
         return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(bc).viewInsets.bottom,
-          ), // Dynamic padding
+          padding: EdgeInsets.only(bottom: MediaQuery.of(bc).viewInsets.bottom), 
           child: Container(
             decoration: const BoxDecoration(
-              color: _bgColor,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              color: Colors.white, 
+              borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
             ),
-            child: _buildLoginMethodPopupContent(email), // Isolated content
+            child: _buildLoginMethodPopupContent(email),
           ),
         );
       },
     );
   }
 
-  // Send OTP and navigate to OTP screen
   Future<void> _sendOtpAndNavigate(String email) async {
-    setState(() {
-      _isLoading = true;
-    });
-
+    setState(() { _isLoading = true; });
     try {
       final authService = AuthService();
-      final response = await authService.sendOtp(
-        email: email,
-        purpose: 'login',
-      );
-
+      final response = await authService.sendOtp(email: email, purpose: 'login');
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-
+        setState(() { _isLoading = false; });
         if (response.success) {
-          debugPrint('OTP sent successfully');
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => OtpScreen(email: email, isFromSignup: false),
-            ),
-          );
+          Navigator.push(context, MaterialPageRoute(builder: (_) => OtpScreen(email: email, isFromSignup: false)));
         } else {
-          setState(() {
-            _errorMessage = response.error ?? 'Failed to send OTP';
-          });
+          setState(() { _errorMessage = response.error ?? 'Failed to send OTP'; });
         }
       }
     } catch (e) {
-      debugPrint('❌ Send OTP error: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorMessage =
-              'Unable to send OTP. Please check your connection and try again.';
+          _errorMessage = 'Unable to send OTP. Please check your connection and try again.';
         });
       }
     }
   }
 
-  // Validation Logic - Show selection popup
   void _validateAndContinue() async {
     String value = _mobileController.text.trim();
-
-    setState(() {
-      _errorMessage = null;
-    });
-
+    setState(() { _errorMessage = null; });
     if (value.isEmpty) {
-      setState(() {
-        _errorMessage = "Please enter your email address";
-      });
+      setState(() { _errorMessage = "Please enter your email address"; });
       return;
     }
-
     if (!value.contains('@') || !value.contains('.')) {
-      setState(() {
-        _errorMessage = "Please enter a valid email address";
-      });
+      setState(() { _errorMessage = "Please enter a valid email address"; });
       return;
     }
-
     _showLoginMethodPopup(value);
-  }
-
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.redAccent,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgColor,
-      resizeToAvoidBottomInset: true,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: 25.0,
-              right: 25.0,
-              top: 25.0,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 25.0,
-            ),
-            child: Column(
-              children: [
-                // 1. Skip Button
-                Align(
-                  alignment: Alignment.topRight,
-                  child: TextButton(
-                    onPressed: () {
-                      // Handle Skip logic
-                    },
-                    child: const Text(
-                      '',
-                      style: TextStyle(
-                        color: _primaryColor,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 80),
-
-                // 2. Dynamic Title
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Enter your email',
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: _primaryColor,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 40),
-
-                // 3. Input Section (Aligned to Line)
-                Stack(
-                  alignment: Alignment.bottomLeft,
+      backgroundColor: _screenBgColor, 
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center, // Vertically center the layout group
                   children: [
-                    // The Underline (Fixed at bottom)
-                    Container(
-                      height: 1.2,
-                      width: double.infinity,
-                      color: _primaryColor,
-                    ),
+                    const Spacer(flex: 3), // Perfectly balanced top flex spacing
 
-                    // Icon and Text Row
                     Padding(
-                      padding: const EdgeInsets.only(
-                        bottom: 2.0,
-                      ), // 1-2 pixel above line
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      child: Stack(
+                        alignment: Alignment.topCenter,
+                        clipBehavior: Clip.none, 
                         children: [
-                          Image.asset(
-                            'assets/images/mail.png',
-                            width: 22,
-                            height: 22,
-                            color: _primaryColor,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextField(
-                              controller: _mobileController,
-                              keyboardType: TextInputType.emailAddress,
-                              cursorColor: _primaryColor,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                color: _primaryColor,
-                                fontWeight: FontWeight.w400,
-                              ),
-                              decoration: InputDecoration(
-                                hintText: 'Email Address',
-                                hintStyle: const TextStyle(
-                                  color: _primaryColor,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w400,
+                          
+                          // 1. White Content Card Box
+                          Container(
+                            margin: const EdgeInsets.only(top: 50), // Standard overhang offset
+                            padding: const EdgeInsets.only(left: 24.0, right: 24.0, top: 74.0, bottom: 34.0),
+                            decoration: BoxDecoration(
+                              color: _cardBgColor,
+                              borderRadius: BorderRadius.circular(28),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: _brandBlue.withOpacity(0.16),
+                                  blurRadius: 30,
+                                  spreadRadius: 1,
+                                  offset: const Offset(0, 10),
+                                )
+                              ],
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                const Text(
+                                  'Welcome Back',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 30, 
+                                    fontWeight: FontWeight.bold,
+                                    color: _textColorDark,
+                                    letterSpacing: 0.2,
+                                  ),
                                 ),
-                                border: InputBorder.none,
-                                isDense: true,
-                                contentPadding: EdgeInsets.zero,
+                                const SizedBox(height: 8),
+                                const Text(
+                                  'Good to see you again!',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 14.5,
+                                    color: _textHintColor,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 36),
+
+                                // Label
+                                const Text(
+                                  'Email Address',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: _textColorDark,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+
+                                // Textfield Structure
+                                TextField(
+                                  controller: _mobileController,
+                                  keyboardType: TextInputType.emailAddress,
+                                  cursorColor: _brandBlue,
+                                  style: const TextStyle(fontSize: 14, color: _textColorDark, fontWeight: FontWeight.w500),
+                                  decoration: InputDecoration(
+                                    hintText: 'example@domain.com',
+                                    hintStyle: TextStyle(color: _textHintColor.withOpacity(0.6), fontSize: 14),
+                                    prefixIcon: const Icon(
+                                      Icons.mail_outline_rounded,
+                                      color: _textColorDark,
+                                      size: 20,
+                                    ),
+                                    filled: true,
+                                    fillColor: _inputFillColor,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                      borderSide: BorderSide(color: _brandBlue.withOpacity(0.3), width: 1.2),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                      borderSide: const BorderSide(color: _brandBlue, width: 1.6),
+                                    ),
+                                  ),
+                                ),
+                                
+                                if (_errorMessage != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8.0),
+                                    child: Text(
+                                      _errorMessage!,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+                                    ),
+                                  ),
+                                    
+                                const SizedBox(height: 36),
+
+                                // Continue Button
+                                SizedBox(
+                                  height: 50,
+                                  child: ElevatedButton(
+                                    onPressed: _isLoading ? null : _validateAndContinue,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: _brandBlue,
+                                      foregroundColor: Colors.white,
+                                      elevation: 1,
+                                      shadowColor: _brandBlue.withOpacity(0.3),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                    ),
+                                    child: _isLoading
+                                        ? const SizedBox(
+                                            width: 22,
+                                            height: 22,
+                                            child: CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
+                                          )
+                                        : const Text(
+                                            'Continue',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+
+                                // Footer Sign Up Link
+                                Center(
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(context, MaterialPageRoute(builder: (_) => const SignupScreen()));
+                                    },
+                                    child: RichText(
+                                      text: const TextSpan(
+                                        style: TextStyle(fontSize: 13, color: _textColorDark),
+                                        children: [
+                                          TextSpan(text: "Don't have an account? "),
+                                          TextSpan(
+                                            text: "Sign Up",
+                                            style: TextStyle(color: _brandBlue, fontWeight: FontWeight.bold),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // 2. Overlapping Shield Element
+                          Positioned(
+                            top: 0, 
+                            child: Container(
+                              width: 106,
+                              height: 106,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: _screenBgColor, 
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.02),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 3),
+                                  )
+                                ]
+                              ),
+                              padding: const EdgeInsets.all(4),
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Container(
+                                    width: 88,
+                                    height: 88,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: _brandBlue.withOpacity(0.12),
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.shield_outlined,
+                                    size: 84,
+                                    color: _brandBlue,
+                                  ),
+                                  const Positioned(
+                                    top: 28,
+                                    child: Icon(
+                                      Icons.lock_rounded,
+                                      size: 26,
+                                      color: _brandBlue,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
                         ],
                       ),
                     ),
+
+                    const Spacer(flex: 4), // Added a 4-ratio bottom spacer block to counter-balance top notches and shift card down into optical center
                   ],
                 ),
-
-                const SizedBox(height: 25),
-
-                const SizedBox(height: 40),
-
-                // Error Message Display
-                if (_errorMessage != null)
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    margin: const EdgeInsets.only(bottom: 20),
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade100,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.error, color: Colors.red, size: 20),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            _errorMessage!,
-                            style: const TextStyle(
-                              color: Colors.red,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                // 4. Continue Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 55,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _validateAndContinue,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF252876),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
-                            ),
-                          )
-                        : const Text(
-                            'Continue',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // 5. Signup Flow (Clickable)
-                InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const SignupScreen()),
-                    );
-                  },
-                  child: const Text(
-                    "I don't have an account",
-                    style: TextStyle(
-                      color: _primaryColor,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 30),
-              ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }

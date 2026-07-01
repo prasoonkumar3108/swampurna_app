@@ -491,6 +491,98 @@ class _CommunityScreenState extends State<CommunityScreen>
     super.dispose();
   }
 
+  // @override
+  // Widget build(BuildContext context) {
+  //   return Scaffold(
+  //     extendBody: false,
+  //     extendBodyBehindAppBar: false,
+  //     body: SafeArea(
+  //       bottom: false, // Don't add bottom padding since extendBody is true
+  //       child: Column(
+  //         children: [
+  //           _buildCustomTabBar(),
+  //           Expanded(
+  //             child: TabBarView(
+  //               controller: _tabController,
+  //               children: [
+  //                 _buildDataTab<BlogModel>(fetchBlogs(), _buildBlogItem),
+  //                 _buildRecentPostTab(),
+  //                 _buildSnapGrid(fetchSnaps()),
+  //               ],
+  //             ),
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //     bottomNavigationBar: BottomNavigationBar(
+  //       type: BottomNavigationBarType.fixed,
+  //       currentIndex: _currentIndex,
+  //       onTap: (index) {
+  //         setState(() {
+  //           _currentIndex = index;
+  //           _tabController.animateTo(index);
+  //         });
+  //       },
+  //       showSelectedLabels: false,
+  //       showUnselectedLabels: false,
+  //       selectedItemColor: const Color(0xFFE67E22),
+  //       unselectedItemColor: Colors.grey[600],
+  //       items: [
+  //         BottomNavigationBarItem(
+  //           icon: Image.asset('assets/images/ftab.png', height: 24, width: 24),
+  //           activeIcon: Image.asset(
+  //             'assets/images/ftab.png',
+  //             height: 24,
+  //             width: 24,
+  //             color: const Color(0xFFE67E22),
+  //           ),
+  //           label: 'Home',
+  //         ),
+  //         BottomNavigationBarItem(
+  //           icon: Image.asset('assets/images/stab.png', height: 24, width: 24),
+  //           activeIcon: Image.asset(
+  //             'assets/images/stab.png',
+  //             height: 24,
+  //             width: 24,
+  //             color: const Color(0xFFE67E22),
+  //           ),
+  //           label: 'Calendar',
+  //         ),
+  //         BottomNavigationBarItem(
+  //           icon: Image.asset('assets/images/ttab.png', height: 24, width: 24),
+  //           activeIcon: Image.asset(
+  //             'assets/images/ttab.png',
+  //             height: 24,
+  //             width: 24,
+  //             color: const Color(0xFFE67E22),
+  //           ),
+  //           label: 'Community',
+  //         ),
+  //         BottomNavigationBarItem(
+  //           icon: Image.asset('assets/images/frtab.png', height: 24, width: 24),
+  //           activeIcon: Image.asset(
+  //             'assets/images/frtab.png',
+  //             height: 24,
+  //             width: 24,
+  //             color: const Color(0xFFE67E22),
+  //           ),
+  //           label: 'Rewards',
+  //         ),
+  //         BottomNavigationBarItem(
+  //           icon: Image.asset('assets/images/fftab.png', height: 24, width: 24),
+  //           activeIcon: Image.asset(
+  //             'assets/images/fftab.png',
+  //             height: 24,
+  //             width: 24,
+  //             color: const Color(0xFFE67E22),
+  //           ),
+  //           label: 'Profile',
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -513,72 +605,6 @@ class _CommunityScreenState extends State<CommunityScreen>
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-            _tabController.animateTo(index);
-          });
-        },
-        showSelectedLabels: false,
-        showUnselectedLabels: false,
-        selectedItemColor: const Color(0xFFE67E22),
-        unselectedItemColor: Colors.grey[600],
-        items: [
-          BottomNavigationBarItem(
-            icon: Image.asset('assets/images/ftab.png', height: 24, width: 24),
-            activeIcon: Image.asset(
-              'assets/images/ftab.png',
-              height: 24,
-              width: 24,
-              color: const Color(0xFFE67E22),
-            ),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Image.asset('assets/images/stab.png', height: 24, width: 24),
-            activeIcon: Image.asset(
-              'assets/images/stab.png',
-              height: 24,
-              width: 24,
-              color: const Color(0xFFE67E22),
-            ),
-            label: 'Calendar',
-          ),
-          BottomNavigationBarItem(
-            icon: Image.asset('assets/images/ttab.png', height: 24, width: 24),
-            activeIcon: Image.asset(
-              'assets/images/ttab.png',
-              height: 24,
-              width: 24,
-              color: const Color(0xFFE67E22),
-            ),
-            label: 'Community',
-          ),
-          BottomNavigationBarItem(
-            icon: Image.asset('assets/images/frtab.png', height: 24, width: 24),
-            activeIcon: Image.asset(
-              'assets/images/frtab.png',
-              height: 24,
-              width: 24,
-              color: const Color(0xFFE67E22),
-            ),
-            label: 'Rewards',
-          ),
-          BottomNavigationBarItem(
-            icon: Image.asset('assets/images/fftab.png', height: 24, width: 24),
-            activeIcon: Image.asset(
-              'assets/images/fftab.png',
-              height: 24,
-              width: 24,
-              color: const Color(0xFFE67E22),
-            ),
-            label: 'Profile',
-          ),
-        ],
       ),
     );
   }

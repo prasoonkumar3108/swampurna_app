@@ -4,16 +4,12 @@ import 'package:intl/intl.dart';
 import '../../../../core/services/auth_service.dart';
 import 'period_calendar_screen.dart';
 import 'package:my_app/features/auth/models/onboarding_data.dart';
-
-// Keep these only if the files exist, otherwise the consolidated classes below take over
 import 'customize_period_screen.dart';
 import 'community_screen.dart';
 import 'dynamic_community_screen.dart';
 import 'live_stream_screen.dart';
 import 'settings_screen.dart';
-// (Yahan apni settings file ka sahi path likhein)
 
-// --- Models ---
 class CalendarDay {
   final int day;
   final String type;
@@ -44,69 +40,52 @@ class TrackerScreen extends StatefulWidget {
 class _TrackerScreenState extends State<TrackerScreen> {
   int _currentIndex = 0;
 
-  final Color bgColor = const Color(0xFFC5EBEA);
-  final Color navyBlue = const Color(0xFF1E1E5F);
-  final Color periodPink = const Color(0xFFE91E63);
-  final Color postPurple = const Color(0xFF4A148C);
-  final Color ovulationGreen = const Color(0xFF388E3C);
-  final Color preYellow = const Color(0xFFFFA000);
+  final Color bgTop = const Color(0xFFDDEAF8);
+  final Color bgBottom = const Color(0xFFF7F8FB);
+  final Color navyBlue = const Color(0xFF4A4F7C);
+  final Color periodPink = const Color(0xFFE34B7E);
+  final Color postPurple = const Color(0xFF5D2A86);
+  final Color ovulationGreen = const Color(0xFF78B58E);
+  final Color preYellow = const Color(0xFFF0A33A);
+
+  final Color outerBlue = const Color(0xFFD7E6FB);
+  final Color cardBg = const Color(0xFFF7F3ED);
 
   late TrackerData apiData;
 
-  // API Integration States
   bool _isLoading = true;
   bool _hasError = false;
   String _errorMessage = '';
 
-  // Period Tracker Setup Data
-  int _cycleLengthDays = 28; // Default
-  int _periodLengthDays = 5; // Default
-  int _ovulationStartDay = 14; // Default
+  int _cycleLengthDays = 28;
+  int _periodLengthDays = 5;
+  int _ovulationStartDay = 14;
 
-  // Calendar Navigation
   DateTime _currentMonth = DateTime.now();
 
   @override
   void initState() {
     super.initState();
-    // Initialize with default data so UI is never empty
     apiData = _generateDefaultCalendarData();
     _fetchPeriodTrackerSetup();
   }
 
-  // Fetch Period Tracker Setup from API
   Future<void> _fetchPeriodTrackerSetup() async {
     try {
-      debugPrint('🔄 Fetching period tracker setup from API...');
-
       final authService = AuthService();
       final response = await authService.getPeriodTrackerSetup();
-
       if (mounted) {
         if (response.success && response.data != null) {
           final data = response.data!;
-          final setupData = data['data'] ?? data; // Handle nested data
-
+          final setupData = data['data'] ?? data;
           setState(() {
-            // Extract values from API response with fallbacks
-            _cycleLengthDays =
-                _extractIntValue(setupData, 'cycle_length_days') ?? 28;
-            _periodLengthDays =
-                _extractIntValue(setupData, 'period_length_days') ?? 5;
-            _ovulationStartDay =
-                _extractIntValue(setupData, 'ovulation_start_day') ?? 14;
-
-            debugPrint(
-              '📊 API Data - Cycle: $_cycleLengthDays, Period: $_periodLengthDays, Ovulation: $_ovulationStartDay',
-            );
-
-            // Now fetch calendar data for current month
-            _fetchPeriodTrackerSummary();
+            _cycleLengthDays = _extractIntValue(setupData, 'cycle_length_days') ?? 28;
+            _periodLengthDays = _extractIntValue(setupData, 'period_length_days') ?? 5;
+            _ovulationStartDay = _extractIntValue(setupData, 'ovulation_start_day') ?? 14;
           });
+          await _fetchPeriodTrackerSummary();
         } else {
-          throw Exception(
-            response.error ?? 'Failed to load period tracker setup',
-          );
+          throw Exception(response.error ?? 'Failed to load period tracker setup');
         }
       }
     } catch (e) {
@@ -114,45 +93,34 @@ class _TrackerScreenState extends State<TrackerScreen> {
         setState(() {
           _hasError = true;
           _errorMessage = 'Failed to load period data. Using default values.';
-          apiData = _generateDefaultCalendarData(); // Fallback to default
-          _isLoading = false; // Stop loading on error
+          apiData = _generateDefaultCalendarData();
+          _isLoading = false;
         });
-        debugPrint('❌ Error fetching period tracker setup: $e');
       }
     }
   }
 
-  // Fetch Period Tracker Summary for current month
   Future<void> _fetchPeriodTrackerSummary() async {
     try {
       final month =
           '${_currentMonth.year.toString().padLeft(4, '0')}-${_currentMonth.month.toString().padLeft(2, '0')}';
-      debugPrint('🔄 Fetching period tracker summary for month: $month');
-
       final authService = AuthService();
       final response = await authService.getPeriodTrackerSummary(month);
-
-      debugPrint('📊 API Response: ${response.data}'); // Debugging log
 
       if (mounted) {
         if (response.success && response.data != null) {
           final data = response.data!;
           final summaryData = data['data'] ?? data;
-
-          debugPrint('📋 Summary Data: $summaryData'); // Debugging log
-
           setState(() {
-            // Generate calendar data from API summary
             apiData = _generateCalendarDataFromSummary(summaryData);
             _hasError = false;
-            _isLoading = false; // Stop loading on success
+            _isLoading = false;
           });
         } else {
-          // If summary API fails, fall back to setup-based generation
           setState(() {
             apiData = _generateCalendarDataFromAPI();
             _hasError = false;
-            _isLoading = false; // Stop loading on fallback
+            _isLoading = false;
           });
         }
       }
@@ -161,14 +129,12 @@ class _TrackerScreenState extends State<TrackerScreen> {
         setState(() {
           apiData = _generateCalendarDataFromAPI();
           _hasError = false;
-          _isLoading = false; // Stop loading on catch
+          _isLoading = false;
         });
-        debugPrint('❌ Error fetching period tracker summary: $e');
       }
     }
   }
 
-  // Helper method to safely extract integer values
   int? _extractIntValue(Map<String, dynamic> data, String key) {
     final value = data[key];
     if (value is int) return value;
@@ -177,24 +143,19 @@ class _TrackerScreenState extends State<TrackerScreen> {
     return null;
   }
 
-  // Generate calendar data based on API values (fallback)
   TrackerData _generateCalendarDataFromAPI() {
     final List<CalendarDay> days = [];
-
-    // Generate cycle based on API data
     for (int day = 1; day <= _cycleLengthDays; day++) {
       String type = 'none';
-
       if (day <= _periodLengthDays) {
-        type = 'period'; // Period days
+        type = 'period';
       } else if (day <= _periodLengthDays + 2) {
-        type = 'post_period'; // Post-period (2 days)
+        type = 'post_period';
       } else if (day >= _ovulationStartDay && day < _ovulationStartDay + 5) {
-        type = 'peak_ovulation'; // Ovulation phase (5 days)
+        type = 'peak_ovulation';
       } else if (day > _cycleLengthDays - 3) {
-        type = 'pre_period'; // Pre-period (3 days)
+        type = 'pre_period';
       }
-
       days.add(CalendarDay(day: day, type: type));
     }
 
@@ -204,43 +165,23 @@ class _TrackerScreenState extends State<TrackerScreen> {
     );
   }
 
-  // Generate calendar data from API summary response
-  TrackerData _generateCalendarDataFromSummary(
-    Map<String, dynamic> summaryData,
-  ) {
+  TrackerData _generateCalendarDataFromSummary(Map<String, dynamic> summaryData) {
     final List<CalendarDay> days = [];
-
-    // Debugging: Check the structure
-    debugPrint('📝 SummaryData keys: ${summaryData.keys}');
-
-    // Try to access days array correctly
     final daysArray = summaryData['days'] as List<dynamic>? ?? [];
     final legend = summaryData['legend'] as List<Map<String, dynamic>>?;
     final adaptiveMetrics =
         summaryData['adaptive_metrics'] as Map<String, dynamic>?;
 
-    debugPrint('📅 Days array length: ${daysArray.length}');
-
-    // Map API days to calendar days
     for (final dayData in daysArray) {
       if (dayData is Map<String, dynamic>) {
         final dateStr = dayData['date'] as String? ?? '';
         final primaryStatus = dayData['primary_status'] as String? ?? 'none';
-
-        debugPrint('🔍 Day data: $dayData');
-
-        // Extract day number from date (assuming format YYYY-MM-DD)
         final dayNumber = int.tryParse(dateStr.split('-').last) ?? 1;
-
         days.add(CalendarDay(day: dayNumber, type: primaryStatus));
       }
     }
 
-    // If no days from API, use fallback
-    if (days.isEmpty) {
-      debugPrint('⚠️ No days from API, using fallback');
-      return _generateCalendarDataFromAPI();
-    }
+    if (days.isEmpty) return _generateCalendarDataFromAPI();
 
     return TrackerData(
       monthTitle: DateFormat('MMM yyyy').format(_currentMonth).toUpperCase(),
@@ -250,46 +191,26 @@ class _TrackerScreenState extends State<TrackerScreen> {
     );
   }
 
-  // Generate default calendar data (fallback)
   TrackerData _generateDefaultCalendarData() {
     final now = DateTime.now();
-    final monthNames = [
-      'JANUARY',
-      'FEBRUARY',
-      'MARCH',
-      'APRIL',
-      'MAY',
-      'JUNE',
-      'JULY',
-      'AUGUST',
-      'SEPTEMBER',
-      'OCTOBER',
-      'NOVEMBER',
-      'DECEMBER',
-    ];
-
     return TrackerData(
       monthTitle: DateFormat('MMM yyyy').format(now).toUpperCase(),
-      days: [
-        // All days in neutral gray state when API fails
-        ...List.generate(31, (i) => CalendarDay(day: i + 1, type: 'none')),
-      ],
+      days: List.generate(31, (i) => CalendarDay(day: i + 1, type: 'none')),
     );
   }
 
-  // Month navigation methods
   void _navigateToPreviousMonth() {
     setState(() {
       _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1);
-      _fetchPeriodTrackerSummary(); // Fetch data for new month
     });
+    _fetchPeriodTrackerSummary();
   }
 
   void _navigateToNextMonth() {
     setState(() {
       _currentMonth = DateTime(_currentMonth.year, _currentMonth.month + 1);
-      _fetchPeriodTrackerSummary(); // Fetch data for new month
     });
+    _fetchPeriodTrackerSummary();
   }
 
   void navigateTo(Widget screen) {
@@ -298,264 +219,282 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Set system UI overlay style to prevent system navigation bar interference
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
-        systemNavigationBarColor:
-            Colors.transparent, // Make system nav bar transparent
-        systemNavigationBarDividerColor: Colors.transparent, // Remove divider
-        systemNavigationBarIconBrightness:
-            Brightness.dark, // Dark icons for light theme
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarDividerColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.dark,
       ),
     );
-
-    // Enable edge-to-edge mode to ensure app draws behind system bars correctly
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
     return Scaffold(
-      backgroundColor: _currentIndex == 3 ? const Color(0xFF121212) : bgColor,
-      extendBody:
-          true, // Allow body to extend behind bottom nav bar with rounded corners
-      resizeToAvoidBottomInset:
-          false, // Prevent keyboard/system bars from pushing UI up
-      body: IndexedStack(
-        index: _currentIndex,
-        children: [
-          _buildTrackerUI(), // Index 0
-          const CommunityScreen(), // Index 1
-          const DynamicCommunityScreen(), // Index 2
-          const LiveStreamScreen(), // Index 3
-          SettingsScreen(), // Index 4
-        ],
-      ),
-      floatingActionButton: _currentIndex == 0
-          ? Padding(
-              padding: const EdgeInsets.only(bottom: 70.0),
-              child: FloatingActionButton(
-                heroTag: "tracker_fab",
-                onPressed: () => navigateTo(const CustomizePeriod()),
-                backgroundColor: navyBlue,
-                child: const Icon(Icons.add, color: Colors.white, size: 30),
-              ),
-            )
-          : null,
-      bottomNavigationBar: _buildBottomNavigationBar(),
-    );
-  }
-
-  // --- INDEX 0: MAIN TRACKER UI ---
-  Widget _buildTrackerUI() {
-    final double screenWidth = MediaQuery.of(context).size.width;
-
-    // Show loading state while API data is being fetched
-    if (_isLoading) {
-      return SafeArea(
-        child: Center(
-          child: CircularProgressIndicator(color: navyBlue, strokeWidth: 3),
+      backgroundColor: Colors.transparent,
+      extendBody: true,
+      resizeToAvoidBottomInset: false,
+      body: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [bgTop, bgBottom],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
         ),
-      );
-    }
-
-    return SafeArea(
-      child: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Padding(
-          padding: const EdgeInsets.only(top: 24.0),
-          child: Column(
+        child: SafeArea(
+          child: IndexedStack(
+            index: _currentIndex,
             children: [
-              _buildTopWarningBar(),
-              _buildMainHeader(),
-              _buildCalendarCard(screenWidth),
-              if (_hasError) _buildErrorBanner(),
-              _buildLegendSection(),
-              const SizedBox(height: 10),
-              _buildActionBtn("Edit period dates"),
-              _buildInsightsSection(),
-              const SizedBox(height: 100),
+              _mainTrackerView(),
+              const CommunityScreen(),
+              const DynamicCommunityScreen(),
+              const LiveStreamScreen(),
+              SettingsScreen(),
             ],
           ),
         ),
       ),
-    );
-  }
-
-  // Error banner for API failures
-  Widget _buildErrorBanner() {
-    return Container(
-      margin: const EdgeInsets.all(12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.orange.shade100,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.orange.shade300),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.warning_amber, color: Colors.orange.shade700, size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              _errorMessage,
-              style: TextStyle(
-                color: Colors.orange.shade700,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+      floatingActionButton: _currentIndex == 0
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 70),
+              child: FloatingActionButton(
+                heroTag: 'tracker_fab',
+                onPressed: () => navigateTo(const CustomizePeriod()),
+                backgroundColor: const Color(0xFF3A4685),
+                elevation: 6,
+                child: const Icon(Icons.add, color: Colors.white, size: 32),
               ),
-            ),
-          ),
-        ],
-      ),
+            )
+          : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 
-  Widget _buildTopWarningBar() {
-    // Show limited data banner based on adaptive_metrics
-    final samplesUsedForCycle =
-        apiData.adaptiveMetrics?['samples_used_for_cycle'] ?? 1;
-    final shouldShowBanner = samplesUsedForCycle == 0;
+  Widget _mainTrackerView() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-    if (!shouldShowBanner) return const SizedBox.shrink();
-
-    return Container(
-      margin: const EdgeInsets.all(12),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.4),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              "Your predictions are based on limited data...",
-              style: TextStyle(
-                fontSize: 11,
-                color: navyBlue,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => navigateTo(const CustomizePeriod()),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: navyBlue,
-              minimumSize: const Size(60, 30),
-            ),
-            child: const Text(
-              "Edit",
-              style: TextStyle(color: Colors.white, fontSize: 12),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMainHeader() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            onPressed: _navigateToPreviousMonth,
-            icon: Icon(Icons.chevron_left, color: navyBlue, size: 30),
-          ),
-          Text(
-            'Your Tracker',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: navyBlue,
-            ),
-          ),
-          IconButton(
-            onPressed: _navigateToNextMonth,
-            icon: Icon(Icons.chevron_right, color: navyBlue, size: 30),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCalendarCard(double width) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: const BoxDecoration(color: Colors.white),
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
       child: Column(
         children: [
-          const SizedBox(height: 20),
-          Text(
-            apiData.monthTitle,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: navyBlue,
-              fontSize: 16,
-            ),
+          // Stack का उपयोग करके बटन को नीले कंटेनर के बॉर्डर पर बिल्कुल आधा अंदर-आधा बाहर सेट किया गया है
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: double.infinity,
+                margin: EdgeInsets.zero,
+                decoration: BoxDecoration(
+                  color: outerBlue,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(30),
+                    topRight: Radius.circular(30),
+                    bottomLeft: Radius.circular(30),
+                    bottomRight: Radius.circular(30),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: _headerRow(),
+                    ),
+                    const SizedBox(height: 10),
+                    _calendarCard(),
+                    const SizedBox(height: 18),
+                    _legendBelowCard(),
+                    // यहाँ से पुराने बटन और Transform.translate को हटाकर नीचे Stack में Positioned किया है
+                    const SizedBox(height: 48), // बटन के स्पेस के लिए पैडिंग बढ़ाई गई है
+                  ],
+                ),
+              ),
+              // बटन को बिल्कुल सेंटर-बॉटम बॉर्डर पर रखने के लिए Positioned विजेट
+              Positioned(
+                bottom: -28, // बटन की ऊंचाई (56) का ठीक आधा, जिससे यह वर्टिकली सेंटर अलाइन होगा
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: _editButtonOnBorder(),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
-          _buildWeekdayLabels(),
-          const Divider(thickness: 1, indent: 10, endIndent: 10),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(10),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 7,
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-            ),
-            itemCount: apiData.days.length,
-            itemBuilder: (context, index) => _calendarCell(apiData.days[index]),
+          const SizedBox(height: 50), // बटन के ओवरफ्लो होने के कारण नीचे के सेक्शन से स्पेस को एडजस्ट किया गया
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: _tipsSectionOutside(),
           ),
-          Container(
-            height: 30,
-            width: double.infinity,
-            color: navyBlue.withOpacity(0.9),
-          ),
+          const SizedBox(height: 120),
         ],
       ),
     );
   }
 
-  Widget _buildWeekdayLabels() {
+  Widget _headerRow() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        IconButton(
+          onPressed: _navigateToPreviousMonth,
+          icon: Icon(Icons.chevron_left, color: navyBlue, size: 32),
+        ),
+        Text(
+          'Your Tracker',
+          style: TextStyle(
+            color: navyBlue,
+            fontSize: 26,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        IconButton(
+          onPressed: _navigateToNextMonth,
+          icon: Icon(Icons.chevron_right, color: navyBlue, size: 32),
+        ),
+      ],
+    );
+  }
+
+  Widget _calendarCard() {
+    final width = MediaQuery.of(context).size.width - 32;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Container(
+        width: width,
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(26),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.fromLTRB(18, 22, 18, 20),
+        child: Column(
+          children: [
+            Text(
+              DateFormat('MMM yyyy').format(_currentMonth).toUpperCase(),
+              style: TextStyle(
+                color: navyBlue,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.1,
+              ),
+            ),
+            const SizedBox(height: 18),
+            _weekdayRow(),
+            const SizedBox(height: 12),
+            Container(height: 1, color: Colors.black.withOpacity(0.08)),
+            const SizedBox(height: 18),
+            _calendarAlignedGrid(width - 36),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _weekdayRow() {
     const labels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: labels
           .map(
-            (l) => Text(
-              l,
-              style: TextStyle(fontWeight: FontWeight.bold, color: navyBlue),
+            (l) => Expanded(
+              child: Center(
+                child: Text(
+                  l,
+                  style: TextStyle(
+                    color: navyBlue.withOpacity(0.75),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
             ),
           )
           .toList(),
     );
   }
 
-  Widget _calendarCell(CalendarDay info) {
-    Color circleColor = _getColorForStatus(info.type);
+  Widget _calendarAlignedGrid(double availableWidth) {
+    final firstOfMonth = DateTime(_currentMonth.year, _currentMonth.month, 1);
+    final startWeekday = firstOfMonth.weekday % 7;
+    final daysInMonth =
+        DateUtils.getDaysInMonth(_currentMonth.year, _currentMonth.month);
+
+    final List<CalendarDay?> slots = [];
+    for (int i = 0; i < startWeekday; i++) slots.add(null);
+
+    final Map<int, CalendarDay> byDay = {for (var d in apiData.days) d.day: d};
+    for (int d = 1; d <= daysInMonth; d++) {
+      slots.add(byDay[d] ?? CalendarDay(day: d, type: 'none'));
+    }
+
+    while (slots.length % 7 != 0) slots.add(null);
+
+    const double spacing = 10;
+    final double cellSize = (availableWidth - (6 * spacing)) / 7;
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: slots.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 7,
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
+        childAspectRatio: 1,
+      ),
+      itemBuilder: (context, idx) {
+        final CalendarDay? slot = slots[idx];
+        if (slot == null) return const SizedBox();
+        return _calendarDayCircle(slot, cellSize);
+      },
+    );
+  }
+
+  Widget _calendarDayCircle(CalendarDay info, double size) {
+    final bool isNone = info.type == 'none';
+    final Color bg = isNone ? const Color(0xFFCDCDCD) : _getColorForStatus(info.type);
+    final Color txt = isNone ? const Color(0xFF424242) : Colors.white;
 
     return Center(
       child: Container(
-        decoration: BoxDecoration(color: circleColor, shape: BoxShape.circle),
-        padding: const EdgeInsets.all(8),
+        height: size * 0.8,
+        width: size * 0.8,
+        decoration: BoxDecoration(
+          color: bg,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.10),
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        alignment: Alignment.center,
         child: Text(
-          "${info.day}",
+          '${info.day}',
           style: TextStyle(
-            color: info.type == 'none' ? Colors.black87 : Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 13,
+            color: txt,
+            fontWeight: FontWeight.w700,
+            fontSize: 15,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildLegendSection() {
-    // Use API legend if available, otherwise use default
-    final legendItems =
-        apiData.legend ??
+  Widget _legendBelowCard() {
+    final legendItems = apiData.legend ??
         [
           {'color': 'pre_period', 'label': 'Pre-Period'},
           {'color': 'period', 'label': 'Period Days'},
@@ -564,67 +503,54 @@ class _TrackerScreenState extends State<TrackerScreen> {
         ];
 
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Wrap(
-        spacing: 20,
-        runSpacing: 10,
         alignment: WrapAlignment.center,
+        spacing: 18,
+        runSpacing: 12,
         children: legendItems.map((item) {
           final colorKey = item['color'] as String? ?? 'none';
           final label = item['label'] as String? ?? 'Unknown';
           final color = _getColorForStatus(colorKey);
-          return _legendItem(color, label);
+
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                height: 14,
+                width: 14,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  color: navyBlue,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                ),
+              ),
+            ],
+          );
         }).toList(),
       ),
     );
   }
 
-  // Helper method to map status to color
-  Color _getColorForStatus(String status) {
-    switch (status) {
-      case 'period':
-        return periodPink; // Magenta/Pink
-      case 'pre_period':
-        return preYellow; // Yellow/Orange
-      case 'post_period':
-        return postPurple; // Purple
-      case 'peak_ovulation':
-        return ovulationGreen; // Green
-      default:
-        return Colors.grey;
-    }
-  }
-
-  Widget _legendItem(Color color, String label) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        CircleAvatar(radius: 7, backgroundColor: color),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: TextStyle(
-            color: navyBlue,
-            fontWeight: FontWeight.bold,
-            fontSize: 13,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionBtn(String text) {
-    return ElevatedButton(
-      onPressed: () {
-        if (text == "Edit period dates") {
-          debugPrint('STEP 1: Tracker -> Calendar');
+  Widget _editButtonOnBorder() {
+    // बटन की जटिलता और अलाइनमेंट को क्लीन रखने के लिए LayoutBuilder को हटाकर सीधे साफ-सुथरा साइज्ड विजेट दिया गया है
+    return SizedBox(
+      width: 220,
+      height: 56,
+      child: ElevatedButton(
+        onPressed: () {
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => PeriodCalendarScreen(
                 onboardingData: OnboardingData(
-                  email: '', // Not required for the setup endpoint
-                  otp: '',   // Not required for the setup endpoint
+                  email: '',
+                  otp: '',
                   lastPeriodDate: DateTime.now(),
                   periodDuration: _periodLengthDays,
                   cycleLength: _cycleLengthDays,
@@ -632,85 +558,99 @@ class _TrackerScreenState extends State<TrackerScreen> {
                 isEditMode: true,
               ),
             ),
-          ).then((_) {
-            // Refresh data when returning from the edit flow
-            _fetchPeriodTrackerSetup();
-          });
-        } else {
-          navigateTo(const CustomizePeriod());
-        }
-      },
-      style: ElevatedButton.styleFrom(
-        backgroundColor: navyBlue,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
+          ).then((_) => _fetchPeriodTrackerSetup());
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFF7F3ED),
+          foregroundColor: navyBlue,
+          elevation: 8,
+          shadowColor: Colors.black26,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
+        ),
+        child: const Text(
+          'Edit period dates',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildInsightsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Text(
-            "Menstrual Health Tips",
+  Widget _tipsSectionOutside() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(8, 18, 8, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Menstrual Health Tips',
             style: TextStyle(
               color: navyBlue,
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
             ),
           ),
-        ),
-        SizedBox(
-          height: 160,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            children: [
-              _insightCard(
-                "Flow Types &\nHydration",
-                Icons.water_drop_outlined,
-              ),
-              _insightCard("Period-Friendly\nNutrition", Icons.restaurant_menu),
-              _insightCard("Exercise &\nMovement", Icons.fitness_center),
-            ],
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 150,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                _insightCard(Icons.opacity, const Color(0xFFF4C05A)),
+                _insightCard(Icons.restaurant, const Color(0xFFF19B47)),
+                _insightCard(Icons.fitness_center, const Color(0xFFF08B5A)),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _insightCard(String title, IconData icon) {
+  Widget _insightCard(IconData icon, Color iconColor) {
     return Container(
-      width: 130,
-      margin: const EdgeInsets.only(right: 15),
+      width: 120,
+      margin: const EdgeInsets.only(right: 18),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(20),
+            height: 104,
+            width: 104,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: navyBlue, width: 2),
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.10),
+                  blurRadius: 14,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
-            child: Icon(icon, size: 40, color: Colors.orangeAccent),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: navyBlue,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
+            child: Center(
+              child: Container(
+                height: 78,
+                width: 78,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      iconColor.withOpacity(0.28),
+                      iconColor.withOpacity(0.08),
+                    ],
+                  ),
+                  border: Border.all(
+                    color: iconColor.withOpacity(0.45),
+                    width: 2,
+                  ),
+                ),
+                child: Icon(icon, color: iconColor, size: 38),
+              ),
             ),
           ),
         ],
@@ -725,13 +665,11 @@ class _TrackerScreenState extends State<TrackerScreen> {
         topRight: Radius.circular(30),
       ),
       child: Container(
-        decoration: BoxDecoration(
-          color: navyBlue,
-          boxShadow: [], // Remove any shadow
-        ),
+        color: navyBlue,
         child: Padding(
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(context).padding.bottom,
+            top: 8,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -752,115 +690,30 @@ class _TrackerScreenState extends State<TrackerScreen> {
     bool isActive = _currentIndex == index;
     return InkWell(
       onTap: () => setState(() => _currentIndex = index),
-      borderRadius: BorderRadius.circular(20),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Image.asset(
           assetPath,
-          height: 24,
-          width: 24,
-          color: isActive ? const Color(0xFFE67E22) : Colors.grey[400],
+          height: 26,
+          width: 26,
+          color: isActive ? const Color(0xFFF0A63A) : Colors.grey,
         ),
       ),
     );
   }
-}
 
-// =============================================================================
-// RESTORED SUB-SCREENS (Consolidated to avoid "Not Defined" errors)
-// =============================================================================
-
-class CommunityContentScreen extends StatelessWidget {
-  const CommunityContentScreen({super.key});
-  @override
-  Widget build(BuildContext context) {
-    final Color navyBlue = const Color(0xFF1E1E5F);
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(vertical: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader("Trending Now", navyBlue),
-          _buildRow(["Cycle Phases", "Blood Color", "Cramps"]),
-          _buildHeader("Guides", navyBlue),
-          _buildRow(["Late Period", "Flow Types", "PMS vs PMDD"]),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader(String t, Color c) => Padding(
-    padding: const EdgeInsets.all(20),
-    child: Text(
-      t,
-      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: c),
-    ),
-  );
-
-  Widget _buildRow(List<String> items) => SizedBox(
-    height: 200,
-    child: ListView.builder(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 15),
-      itemCount: items.length,
-      itemBuilder: (context, i) => Container(
-        width: 150,
-        margin: const EdgeInsets.all(5),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: Colors.white,
-          image: const DecorationImage(
-            image: NetworkImage('https://via.placeholder.com/150x200'),
-            fit: BoxFit.cover,
-          ),
-        ),
-        alignment: Alignment.bottomCenter,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.black54,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(
-            items[i],
-            style: const TextStyle(color: Colors.white, fontSize: 12),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-class LiveStreamScreen extends StatelessWidget {
-  const LiveStreamScreen({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: const Color(0xFF121212),
-      child: Column(
-        children: [
-          Container(
-            height: 220,
-            width: double.infinity,
-            color: Colors.grey[900],
-            child: const Icon(
-              Icons.play_circle_fill,
-              size: 80,
-              color: Colors.white,
-            ),
-          ),
-          const Expanded(
-            child: Center(
-              child: Text(
-                "Live Events",
-                style: TextStyle(color: Colors.white, fontSize: 20),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  Color _getColorForStatus(String status) {
+    switch (status) {
+      case 'period':
+        return periodPink;
+      case 'pre_period':
+        return preYellow;
+      case 'post_period':
+        return postPurple;
+      case 'peak_ovulation':
+        return ovulationGreen;
+      default:
+        return Colors.grey.shade300;
+    }
   }
 }
