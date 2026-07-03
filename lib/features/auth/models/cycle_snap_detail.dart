@@ -28,7 +28,7 @@ class CycleSnapDetail {
       title: data['title'] ?? '',
       description: data['description'] ?? '',
       mediaUrl: data['media_url'] ?? '',
-      mediaType: data['media_type'] ?? '',
+      mediaType: data['media_type'] ?? 'image',
       status: data['status'] ?? '',
       createdAt: data['created_at'] ?? '',
       authorEmail: data['author']?['email'] ?? '',
