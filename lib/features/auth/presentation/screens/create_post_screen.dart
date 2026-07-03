@@ -8,6 +8,8 @@ import 'package:path/path.dart' as path;
 import 'dart:convert';
 import '../../../../core/services/auth_service.dart';
 import '../../../../core/services/token_storage_service.dart';
+import 'package:video_compress/video_compress.dart';
+
 
 enum PostType { recentPost, cycleSnap }
 
@@ -151,199 +153,400 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 }
 
-  Future<String?> _uploadToBackendAPI(File file) async {
-    try {
-      String? token = await TokenStorageService.instance.getToken();
-      if (token == null) return null;
+//   Future<String?> _uploadToBackendAPI(File file) async {
+//     try {
+//       String? token = await TokenStorageService.instance.getToken();
+//       if (token == null) return null;
 
-      // Clean the token (removing any extra quotes)
-      token = token.replaceAll('"', '');
-      if (!token.startsWith('Bearer ')) {
-        token = 'Bearer $token';
-      }
+//       // Clean the token (removing any extra quotes)
+//       token = token.replaceAll('"', '');
+//       if (!token.startsWith('Bearer ')) {
+//         token = 'Bearer $token';
+//       }
 
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse(
-          'https://swampurna-final-production.up.railway.app/api/v1/posts/media/upload',
+//       var request = http.MultipartRequest(
+//         'POST',
+//         Uri.parse(
+//           'https://swampurna-final-production.up.railway.app/api/v1/posts/media/upload',
+//         ),
+//       );
+
+//       // Set headers strictly
+//       request.headers.addAll({
+//         'Authorization': token,
+//         'Accept': 'application/json',
+//       });
+
+//       final extension = path
+//           .extension(file.path)
+//           .replaceAll('.', ''); // jpg, png, etc.
+
+//       // request.files.add(
+//       //   await http.MultipartFile.fromPath(
+//       //     'file',
+//       //     file.path,
+//       //     contentType: MediaType(
+//       //       'image',
+//       //       extension == 'jpg' ? 'jpeg' : extension,
+//       //     ),
+//       //   ),
+//       // );
+
+//       request.files.add(
+//   await http.MultipartFile.fromPath(
+//     'file',
+//     file.path,
+//     contentType: _isVideo
+//         ? MediaType('video', extension)
+//         : MediaType(
+//             'image',
+//             extension == 'jpg' ? 'jpeg' : extension,
+//           ),
+//   ),
+// );
+
+//       debugPrint('--- UPLOAD ATTEMPT ---');
+//       debugPrint('Token used: $token');
+
+//       var streamedResponse = await request.send();
+//       var response = await http.Response.fromStream(streamedResponse);
+
+//       if (response.statusCode == 200 || response.statusCode == 201) {
+//         return jsonDecode(response.body)['url'];
+//       } else if (response.statusCode == 400) {
+//         debugPrint('--- BAD REQUEST: 400 - Invalid file type ---');
+//         return null;
+//       } else {
+//         debugPrint('Upload Failed: ${response.statusCode} - ${response.body}');
+//         return null;
+//       }
+//     } catch (e) {
+//       debugPrint('Upload Exception: $e');
+//       return null;
+//     }
+//   }
+Future<Map<String, dynamic>?> _uploadToBackendAPI(File file) async {
+  try {
+    String? token = await TokenStorageService.instance.getToken();
+    if (token == null) return null;
+
+    token = token.replaceAll('"', '');
+    if (!token.startsWith('Bearer ')) {
+      token = 'Bearer $token';
+    }
+
+    // Dynamic Endpoints
+    String url = widget.postType == PostType.recentPost
+        ? 'https://swampurna-final-production.up.railway.app/api/v1/posts/media/upload'
+        : 'https://swampurna-final-production.up.railway.app/api/v1/cycle-snaps/media/upload';
+
+    var request = http.MultipartRequest('POST', Uri.parse(url));
+    request.headers['Authorization'] = token;
+
+    // ✅ For video: force filename with .mp4 and correct MIME type
+    if (_isVideo) {
+      request.files.add(
+        http.MultipartFile(
+          'file',
+          file.openRead(),
+          await file.length(),
+          filename: '${DateTime.now().millisecondsSinceEpoch}.mp4',
+          contentType: MediaType('video', 'mp4'),
         ),
       );
-
-      // Set headers strictly
-      request.headers.addAll({
-        'Authorization': token,
-        'Accept': 'application/json',
-      });
-
-      final extension = path
-          .extension(file.path)
-          .replaceAll('.', ''); // jpg, png, etc.
-
-      // request.files.add(
-      //   await http.MultipartFile.fromPath(
-      //     'file',
-      //     file.path,
-      //     contentType: MediaType(
-      //       'image',
-      //       extension == 'jpg' ? 'jpeg' : extension,
-      //     ),
-      //   ),
-      // );
-
+    } else {
+      // Image flow unchanged
       request.files.add(
-  await http.MultipartFile.fromPath(
-    'file',
-    file.path,
-    contentType: _isVideo
-        ? MediaType('video', extension)
-        : MediaType(
-            'image',
-            extension == 'jpg' ? 'jpeg' : extension,
-          ),
-  ),
-);
+        await http.MultipartFile.fromPath(
+          'file',
+          file.path,
+          contentType: MediaType('image', 'jpeg'),
+        ),
+      );
+    }
 
-      debugPrint('--- UPLOAD ATTEMPT ---');
-      debugPrint('Token used: $token');
+    print('--- UPLOAD ATTEMPT ---');
+    print('URL used: $url');
+    print('File path: ${file.path}');
+    print('File size: ${await file.length()} bytes');
 
-      var streamedResponse = await request.send();
-      var response = await http.Response.fromStream(streamedResponse);
+    var streamedResponse = await request.send();
+    var response = await http.Response.fromStream(streamedResponse);
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return jsonDecode(response.body)['url'];
-      } else if (response.statusCode == 400) {
-        debugPrint('--- BAD REQUEST: 400 - Invalid file type ---');
-        return null;
-      } else {
-        debugPrint('Upload Failed: ${response.statusCode} - ${response.body}');
-        return null;
-      }
-    } catch (e) {
-      debugPrint('Upload Exception: $e');
+    print('Response Code: ${response.statusCode}');
+    print('Response Body: ${response.body}');
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final decodedData = jsonDecode(response.body);
+      return {
+        'url': decodedData['url'],
+        'media_type': decodedData['media_type'] ?? (_isVideo ? 'video' : 'image'),
+      };
+    } else {
+      debugPrint('Upload Failed: ${response.statusCode} - ${response.body}');
       return null;
     }
+  } catch (e) {
+    debugPrint('Upload Exception: $e');
+    return null;
+  }
+}
+Future<void> _submitPost() async {
+  if (_titleController.text.trim().isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please enter a title'), backgroundColor: Colors.red),
+    );
+    return;
   }
 
-  Future<void> _submitPost() async {
-    // Validate title
-    if (_titleController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a title'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
+  if (_descriptionController.text.trim().isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please enter a description'), backgroundColor: Colors.red),
+    );
+    return;
+  }
+
+  if (_selectedMedia == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please select media'), backgroundColor: Colors.orange),
+    );
+    return;
+  }
+
+  setState(() {
+    _isLoading = true;
+    _isUploading = true;
+  });
+
+  try {
+    String? mediaUrl;
+    String detectedMediaType = _isVideo ? 'video' : 'image';
+
+    File? fileToUpload = _selectedMedia;
+
+    // ✅ Compress video if needed
+    if (_isVideo && _selectedMedia != null) {
+      fileToUpload = await _compressVideo(_selectedMedia!);
     }
 
-    // Validate description
-    if (_descriptionController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a description'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
+    if (fileToUpload != null) {
+      final uploadResult = await _uploadToBackendAPI(fileToUpload);
 
-    // Validate image (optional for now, but recommended)
-    if (_selectedMedia == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select an image'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _isUploading = true;
-    });
-
-    try {
-      // Upload image first to get URL
-      String? imageUrl;
-      if (_selectedMedia != null) {
-        imageUrl = await _uploadToBackendAPI(_selectedMedia!);
-        if (imageUrl == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Backend only accepts images (JPG/PNG). Check file extension.',
-              ),
-              backgroundColor: Colors.red,
-            ),
-          );
-          setState(() {
-            _isLoading = false;
-            _isUploading = false;
-          });
-          return;
-        }
+      if (uploadResult == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Upload failed. Please check backend file constraints.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() {
+          _isLoading = false;
+          _isUploading = false;
+        });
+        return;
       }
 
-      // Create post with uploaded image URL
-      final authService = AuthService();
-      final response = widget.postType == PostType.recentPost
-          ? await authService.createRecentPost(
-              title: _titleController.text.trim(),
-              content: _descriptionController.text.trim(),
-              imageFile: null, // Not needed since we're passing URL
-              imageUrl: imageUrl, // Backend expects media_url
-            )
-          : await authService.createCycleSnap(
-              title: _titleController.text.trim(),
-              description: _descriptionController.text.trim(),
-              mediaFile: null, // Not needed since we're passing URL
-              mediaUrl: imageUrl, // Backend expects media_url
-              mediaType: _isVideo ? 'video' : 'image',
-            );
+      // ✅ Fix: Extract values from Map
+      mediaUrl = uploadResult['url'] as String?;
+      detectedMediaType = uploadResult['media_type'] as String? ?? detectedMediaType;
+    }
 
-      if (mounted) {
-        if (response.success) {
-          // Show success message
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                widget.postType == PostType.recentPost
-                    ? 'Post created successfully!'
-                    : 'Cycle snap added successfully!',
-              ),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 2),
-            ),
+    final authService = AuthService();
+    final response = widget.postType == PostType.recentPost
+        ? await authService.createRecentPost(
+            title: _titleController.text.trim(),
+            content: _descriptionController.text.trim(),
+            imageFile: null,
+            imageUrl: mediaUrl,
+          )
+        : await authService.createCycleSnap(
+            title: _titleController.text.trim(),
+            description: _descriptionController.text.trim(),
+            mediaFile: null,
+            mediaUrl: mediaUrl,
+            mediaType: detectedMediaType,
           );
 
-          // Navigate back with success flag to trigger refresh
-          Navigator.pop(context, true);
-        } else {
-          setState(() {
-            _isLoading = false;
-            _isUploading = false;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(response.error ?? 'Failed to create post'),
-              backgroundColor: Colors.red,
+    if (mounted) {
+      if (response.success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              widget.postType == PostType.recentPost
+                  ? 'Post created successfully!'
+                  : 'Cycle snap added successfully!',
             ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        Navigator.pop(context, true);
+      } else {
         setState(() {
           _isLoading = false;
           _isUploading = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text(response.error ?? 'Failed to create post'), backgroundColor: Colors.red),
         );
       }
     }
+  } catch (e) {
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+        _isUploading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+      );
+    }
   }
+}
+/// Compress video before upload
+Future<File?> _compressVideo(File file) async {
+  try {
+    final compressedVideo = await VideoCompress.compressVideo(
+      file.path,
+      quality: VideoQuality.MediumQuality, // tum chaho to LowQuality bhi use kar sakte ho
+      deleteOrigin: false, // original file delete na ho
+    );
+
+    if (compressedVideo != null && compressedVideo.file != null) {
+      print('Original size: ${await file.length()} bytes');
+      print('Compressed size: ${await compressedVideo.file!.length()} bytes');
+      return compressedVideo.file;
+    } else {
+      print('Compression failed, returning original file');
+      return file;
+    }
+  } catch (e) {
+    print('Compression error: $e');
+    return file; // agar compression fail ho to original file upload karo
+  }
+}
+
+
+  // Future<void> _submitPost2() async {
+  //   // Validate title
+  //   if (_titleController.text.trim().isEmpty) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(
+  //         content: Text('Please enter a title'),
+  //         backgroundColor: Colors.red,
+  //       ),
+  //     );
+  //     return;
+  //   }
+
+  //   // Validate description
+  //   if (_descriptionController.text.trim().isEmpty) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(
+  //         content: Text('Please enter a description'),
+  //         backgroundColor: Colors.red,
+  //       ),
+  //     );
+  //     return;
+  //   }
+
+  //   // Validate image (optional for now, but recommended)
+  //   if (_selectedMedia == null) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(
+  //         content: Text('Please select an image'),
+  //         backgroundColor: Colors.orange,
+  //       ),
+  //     );
+  //     return;
+  //   }
+
+  //   setState(() {
+  //     _isLoading = true;
+  //     _isUploading = true;
+  //   });
+
+  //   try {
+  //     // Upload image first to get URL
+  //     String? imageUrl;
+  //     if (_selectedMedia != null) {
+  //       imageUrl = await _uploadToBackendAPI(_selectedMedia!);
+  //       if (imageUrl == null) {
+  //         ScaffoldMessenger.of(context).showSnackBar(
+  //           const SnackBar(
+  //             content: Text(
+  //               'Backend only accepts images (JPG/PNG). Check file extension.',
+  //             ),
+  //             backgroundColor: Colors.red,
+  //           ),
+  //         );
+  //         setState(() {
+  //           _isLoading = false;
+  //           _isUploading = false;
+  //         });
+  //         return;
+  //       }
+  //     }
+
+  //     // Create post with uploaded image URL
+  //     final authService = AuthService();
+  //     final response = widget.postType == PostType.recentPost
+  //         ? await authService.createRecentPost(
+  //             title: _titleController.text.trim(),
+  //             content: _descriptionController.text.trim(),
+  //             imageFile: null, // Not needed since we're passing URL
+  //             imageUrl: imageUrl, // Backend expects media_url
+  //           )
+  //         : await authService.createCycleSnap(
+  //             title: _titleController.text.trim(),
+  //             description: _descriptionController.text.trim(),
+  //             mediaFile: null, // Not needed since we're passing URL
+  //             mediaUrl: imageUrl, // Backend expects media_url
+  //             mediaType: _isVideo ? 'video' : 'image',
+  //           );
+
+  //     if (mounted) {
+  //       if (response.success) {
+  //         // Show success message
+  //         ScaffoldMessenger.of(context).showSnackBar(
+  //           SnackBar(
+  //             content: Text(
+  //               widget.postType == PostType.recentPost
+  //                   ? 'Post created successfully!'
+  //                   : 'Cycle snap added successfully!',
+  //             ),
+  //             backgroundColor: Colors.green,
+  //             duration: const Duration(seconds: 2),
+  //           ),
+  //         );
+
+  //         // Navigate back with success flag to trigger refresh
+  //         Navigator.pop(context, true);
+  //       } else {
+  //         setState(() {
+  //           _isLoading = false;
+  //           _isUploading = false;
+  //         });
+  //         ScaffoldMessenger.of(context).showSnackBar(
+  //           SnackBar(
+  //             content: Text(response.error ?? 'Failed to create post'),
+  //             backgroundColor: Colors.red,
+  //           ),
+  //         );
+  //       }
+  //     }
+  //   } catch (e) {
+  //     if (mounted) {
+  //       setState(() {
+  //         _isLoading = false;
+  //         _isUploading = false;
+  //       });
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+  //       );
+  //     }
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {

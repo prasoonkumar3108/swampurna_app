@@ -47,6 +47,7 @@ class Article {
   final String? description;
   final String? imageUrl;
   final String? categoryId;
+  final String? slug;
 
   Article({
     required this.id,
@@ -54,6 +55,7 @@ class Article {
     this.description,
     this.imageUrl,
     this.categoryId,
+    this.slug,
   });
 
   factory Article.fromJson(Map<String, dynamic> json) {
@@ -63,7 +65,9 @@ class Article {
       description: json['description']?.toString(),
       imageUrl: json['image_url']?.toString(), // Map image_url -> imageUrl
       categoryId: json['category_id']
-          ?.toString(), // Map category_id -> categoryId
+          ?.toString(), 
+      slug: json['slug']
+          ?.toString(), 
     );
   }
 }
@@ -98,6 +102,7 @@ class CommunityArticle {
   final String? imageUrl;
   final String? description;
   final String? categoryId;
+  final String? slug;
 
   CommunityArticle({
     required this.id,
@@ -105,6 +110,7 @@ class CommunityArticle {
     this.imageUrl,
     this.description,
     this.categoryId,
+    this.slug,
   });
 
   factory CommunityArticle.fromArticle(Article article) {
@@ -114,6 +120,7 @@ class CommunityArticle {
       imageUrl: article.imageUrl,
       description: article.description,
       categoryId: article.categoryId,
+      slug:article.slug,
     );
   }
 }

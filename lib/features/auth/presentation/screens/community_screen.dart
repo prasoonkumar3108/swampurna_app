@@ -8,6 +8,10 @@ import 'package:share_plus/share_plus.dart';
 import 'create_post_screen.dart';
 import 'chat_screen.dart';
 import 'blog_detail_screen.dart';
+import 'package:my_app/features/auth/presentation/screens/cycle_snap_detail_screen.dart';
+import 'dart:typed_data'; // for Uint8List
+import 'package:video_thumbnail/video_thumbnail.dart'; 
+
 
 // --- Improved Models for API Data ---
 class BlogModel {
@@ -491,98 +495,6 @@ class _CommunityScreenState extends State<CommunityScreen>
     super.dispose();
   }
 
-  // @override
-  // Widget build(BuildContext context) {
-  //   return Scaffold(
-  //     extendBody: false,
-  //     extendBodyBehindAppBar: false,
-  //     body: SafeArea(
-  //       bottom: false, // Don't add bottom padding since extendBody is true
-  //       child: Column(
-  //         children: [
-  //           _buildCustomTabBar(),
-  //           Expanded(
-  //             child: TabBarView(
-  //               controller: _tabController,
-  //               children: [
-  //                 _buildDataTab<BlogModel>(fetchBlogs(), _buildBlogItem),
-  //                 _buildRecentPostTab(),
-  //                 _buildSnapGrid(fetchSnaps()),
-  //               ],
-  //             ),
-  //           ),
-  //         ],
-  //       ),
-  //     ),
-  //     bottomNavigationBar: BottomNavigationBar(
-  //       type: BottomNavigationBarType.fixed,
-  //       currentIndex: _currentIndex,
-  //       onTap: (index) {
-  //         setState(() {
-  //           _currentIndex = index;
-  //           _tabController.animateTo(index);
-  //         });
-  //       },
-  //       showSelectedLabels: false,
-  //       showUnselectedLabels: false,
-  //       selectedItemColor: const Color(0xFFE67E22),
-  //       unselectedItemColor: Colors.grey[600],
-  //       items: [
-  //         BottomNavigationBarItem(
-  //           icon: Image.asset('assets/images/ftab.png', height: 24, width: 24),
-  //           activeIcon: Image.asset(
-  //             'assets/images/ftab.png',
-  //             height: 24,
-  //             width: 24,
-  //             color: const Color(0xFFE67E22),
-  //           ),
-  //           label: 'Home',
-  //         ),
-  //         BottomNavigationBarItem(
-  //           icon: Image.asset('assets/images/stab.png', height: 24, width: 24),
-  //           activeIcon: Image.asset(
-  //             'assets/images/stab.png',
-  //             height: 24,
-  //             width: 24,
-  //             color: const Color(0xFFE67E22),
-  //           ),
-  //           label: 'Calendar',
-  //         ),
-  //         BottomNavigationBarItem(
-  //           icon: Image.asset('assets/images/ttab.png', height: 24, width: 24),
-  //           activeIcon: Image.asset(
-  //             'assets/images/ttab.png',
-  //             height: 24,
-  //             width: 24,
-  //             color: const Color(0xFFE67E22),
-  //           ),
-  //           label: 'Community',
-  //         ),
-  //         BottomNavigationBarItem(
-  //           icon: Image.asset('assets/images/frtab.png', height: 24, width: 24),
-  //           activeIcon: Image.asset(
-  //             'assets/images/frtab.png',
-  //             height: 24,
-  //             width: 24,
-  //             color: const Color(0xFFE67E22),
-  //           ),
-  //           label: 'Rewards',
-  //         ),
-  //         BottomNavigationBarItem(
-  //           icon: Image.asset('assets/images/fftab.png', height: 24, width: 24),
-  //           activeIcon: Image.asset(
-  //             'assets/images/fftab.png',
-  //             height: 24,
-  //             width: 24,
-  //             color: const Color(0xFFE67E22),
-  //           ),
-  //           label: 'Profile',
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -627,7 +539,7 @@ class _CommunityScreenState extends State<CommunityScreen>
           return const Center(child: Text("No data found"));
 
         return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 54),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
           itemCount: snapshot.data!.length,
           separatorBuilder: (_, __) => const SizedBox(height: 16),
           itemBuilder: (context, index) => itemBuilder(snapshot.data![index]),
@@ -739,7 +651,7 @@ class _CommunityScreenState extends State<CommunityScreen>
 
               return ListView.builder(
                 padding: const EdgeInsets.only(
-                  bottom: 30,
+                  bottom: 0,
                 ), // Bottom padding for navigation bar
                 itemCount: snapshot.data!.length,
                 itemBuilder: (context, index) =>
@@ -752,457 +664,747 @@ class _CommunityScreenState extends State<CommunityScreen>
     );
   }
 
-  Widget _buildPostItem(PostModel post) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+final Set<String> _loadingPostIds = {}; 
+
+Widget _buildPostItem(PostModel post) {
+  final bool isLikeLoading = _loadingPostIds.contains(post.id);
+
+  return Container(
+    margin: const EdgeInsets.only(bottom: 16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.05),
+          blurRadius: 4,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: navyBlue,
+                child: const Icon(
+                  Icons.person,
+                  size: 22,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  _getAuthorName(post.authorEmail),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => print('More options clicked'),
+                child: Icon(
+                  Icons.more_vert,
+                  color: Colors.grey[600],
+                  size: 20,
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header - Post title instead of FlowCare
+        ),
+
+        // Media Image
+        if (post.imageUrl.isNotEmpty && post.imageUrl != placeholder)
+          Container(
+            width: double.infinity,
+            height: 350,
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: CachedNetworkImage(
+                imageUrl: post.imageUrl,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
+                  color: Colors.grey[200],
+                  child: const Center(child: CircularProgressIndicator()),
+                ),
+                errorWidget: (context, url, error) {
+                  debugPrint('Recent Post image load error: $error for URL: $url');
+                  return Container(
+                    color: Colors.grey[200],
+                    child: const Icon(Icons.broken_image, size: 40),
+                  );
+                },
+              ),
+            ),
+          ),
+
+        // Action Row - (Custom Images & Inline Loader Fixed)
+        if (post.imageUrl.isNotEmpty && post.imageUrl != placeholder)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: navyBlue,
-                  child: const Icon(
-                    Icons.person,
-                    size: 22,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    _getAuthorName(post.authorEmail),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => print('More options clicked'),
-                  child: Icon(
-                    Icons.more_vert,
-                    color: Colors.grey[600],
-                    size: 20,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Media Image - Proper square/rectangular with BoxFit.cover
-          if (post.imageUrl.isNotEmpty && post.imageUrl != placeholder)
-            Container(
-              width: double.infinity,
-              height: 350,
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: CachedNetworkImage(
-                  imageUrl: post.imageUrl,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    color: Colors.grey[200],
-                    child: const Center(child: CircularProgressIndicator()),
-                  ),
-                  errorWidget: (context, url, error) {
-                    debugPrint(
-                      'Recent Post image load error: $error for URL: $url',
-                    );
-                    return Container(
-                      color: Colors.grey[200],
-                      child: const Icon(Icons.broken_image, size: 40),
-                    );
-                  },
-                ),
-              ),
-            ),
-
-          // Action Row - Icons with Counts below them
-          if (post.imageUrl.isNotEmpty && post.imageUrl != placeholder)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Like Icon
-                  Column(
-                    children: [
-                      GestureDetector(
-                        onTap: () => toggleLike(post),
-                        child: Icon(
-                          post.likedByMe ? Icons.favorite : Icons.favorite_border,
-                          color: post.likedByMe ? Colors.red : Colors.black54,
-                          size: 24,
-                        ),
-                      ),
-                      Text(
-                        '${post.likeCount}',
-                        style: const TextStyle(fontSize: 12, color: Colors.black54),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 20),
-                  // Comment Icon
-                  Column(
-                    children: [
-                      Icon(
-                        Icons.chat_bubble_outline,
-                        color: Colors.black54,
-                        size: 24,
-                      ),
-                      Text(
-                        '${post.commentCount}',
-                        style: const TextStyle(fontSize: 12, color: Colors.black54),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 20),
-                  // Share Icon
-                  GestureDetector(
-                    onTap: () async {
-                      await Share.share('${post.title}\n\n${post.content}');
-                    },
-                    child: Icon(Icons.send, color: Colors.black54, size: 24),
-                  ),
-                  const SizedBox(width: 20),
-                  // Bookmark Icon
-                  GestureDetector(
-                    onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Bookmark feature coming soon")),
-                    ),
-                    child: Icon(
-                      Icons.bookmark_border,
-                      color: Colors.black54,
-                      size: 24,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-          // Content Section - Reduced top padding
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Post content with Show More logic
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final bool isExpanded = _expandedPostIds.contains(post.id);
-                    final String content = post.content;
-                    final bool canExpand = content.length > 120;
-                    
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          canExpand && !isExpanded 
-                              ? '${content.substring(0, 120)}...' 
-                              : content,
-                          style: const TextStyle(color: Colors.black87, fontSize: 14),
-                        ),
-                        if (canExpand)
-                          GestureDetector(
-                            onTap: () {
+                // Like Button (With Inline Loader)
+                Column(
+                  children: [
+                    GestureDetector(
+                      onTap: isLikeLoading 
+                          ? null // Loading ke time click disable rahega
+                          : () async {
                               setState(() {
-                                if (isExpanded) {
-                                  _expandedPostIds.remove(post.id);
-                                } else {
-                                  _expandedPostIds.add(post.id);
-                                }
+                                _loadingPostIds.add(post.id);
+                              });
+                              
+                              // Aapka purana toggleLike function yahan await hoga
+                              await toggleLike(post); 
+                              
+                              setState(() {
+                                _loadingPostIds.remove(post.id);
                               });
                             },
-                            child: Text(
-                              isExpanded ? "Show less" : "Show more",
-                              style: TextStyle(
-                                color: navyBlue, 
-                                fontWeight: FontWeight.bold, 
-                                fontSize: 12
+                      child: isLikeLoading
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
                               ),
+                            )
+                          : Image.asset(
+                              'assets/images/like.png', // Aapka assets path check kar lein
+                              width: 24,
+                              height: 24,
+                              color: post.likedByMe ? Colors.red : Colors.black54,
                             ),
-                          ),
-                      ],
-                    );
-                  },
-                ),
-                const SizedBox(height: 8),
-
-                // Stats & Time
-                Row(
-                  children: [
-                    if (post.commentCount > 0)
-                      GestureDetector(
-                        onTap: () => _showCommentsBottomSheet(post),
-                        child: Text(
-                          'View all ${post.commentCount} comments',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    const Spacer(),
+                    ),
+                    const SizedBox(height: 4),
                     Text(
-                      _getRelativeTime(post.createdAt),
-                      style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                      '${post.likeCount}',
+                      style: const TextStyle(fontSize: 12, color: Colors.black54),
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
+                const SizedBox(width: 20),
 
-          // Comment Section
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 16,
-                  backgroundColor: Colors.grey[300],
-                  child: const Icon(
-                    Icons.person,
-                    size: 16,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => _showCommentsBottomSheet(post),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        'Add a comment...',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                // Comment Button (Custom Image)
+                Column(
+                  children: [
+                    GestureDetector(
+                      onTap: () => _showCommentsBottomSheet(post),
+                      child: Image.asset(
+                        'assets/images/chat.png',
+                        width: 24,
+                        height: 24,
+                        color: Colors.black54,
                       ),
                     ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${post.commentCount}',
+                      style: const TextStyle(fontSize: 12, color: Colors.black54),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 20),
+
+                // Share Button (Custom Image)
+                GestureDetector(
+                  onTap: () async {
+                    await Share.share('${post.title}\n\n${post.content}');
+                  },
+                  child: Image.asset(
+                    'assets/images/send.png',
+                    width: 24,
+                    height: 24,
+                    color: Colors.black54,
+                  ),
+                ),
+                const SizedBox(width: 20),
+
+                // Bookmark Button (Custom Image standard update)
+                GestureDetector(
+                  onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("")),
+                  ),
+                  child: Icon(
+                    Icons.bookmark_border,
+                    color: Colors.black54,
+                    size: 24,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 8),
-        ],
-      ),
-    );
-  }
 
-  // --- Tab 3: Cycle Snaps ---
-  Widget _buildSnapGrid(Future<List<SnapModel>> future) {
-    return Column(
-      children: [
-        _buildSubmissionBar(
-          "Submit your snap here for review",
-          postType: PostType.cycleSnap,
-        ),
-        Expanded(
-          child: FutureBuilder<List<SnapModel>>(
-            key: ValueKey('snaps_$_snapsRefreshKey'),
-            future: future,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting)
-                return const Center(child: CircularProgressIndicator());
-              if (snapshot.hasError) {
-                print('Snaps API Error: ${snapshot.error}');
-                return Center(child: Text("Error: ${snapshot.error}"));
-              }
-              if (!snapshot.hasData || snapshot.data!.isEmpty)
-                return const Center(child: Text("No snaps found"));
-
-              return GridView.builder(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 40.0),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 0.7,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 16,
-                ),
-                itemCount: snapshot.data!.length,
-                itemBuilder: (context, index) {
-                  final snap = snapshot.data![index];
-                  return Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 6,
-                          offset: const Offset(0, 3),
+        // Content Section
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final bool isExpanded = _expandedPostIds.contains(post.id);
+                  final String content = post.content;
+                  final bool canExpand = content.length > 120;
+                  
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        canExpand && !isExpanded 
+                            ? '${content.substring(0, 120)}...' 
+                            : content,
+                        style: const TextStyle(color: Colors.black87, fontSize: 14),
+                      ),
+                      if (canExpand)
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              if (isExpanded) {
+                                _expandedPostIds.remove(post.id);
+                              } else {
+                                _expandedPostIds.add(post.id);
+                              }
+                            });
+                          },
+                          child: Text(
+                            isExpanded ? "Show less" : "Show more",
+                            style: TextStyle(
+                              color: navyBlue, 
+                              fontWeight: FontWeight.bold, 
+                              fontSize: 12
+                            ),
+                          ),
                         ),
-                      ],
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 8),
+
+              // Stats & Time
+              Row(
+                children: [
+                  if (post.commentCount > 0)
+                    GestureDetector(
+                      onTap: () => _showCommentsBottomSheet(post),
+                      child: Text(
+                        'View all ${post.commentCount} comments',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
-                    child: Stack(
-                      children: [
-                        // Main Image
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: CachedNetworkImage(
-                            imageUrl:
-                                (snap.mediaUrl.isNotEmpty &&
-                                    snap.mediaUrl != 'null' &&
-                                    snap.mediaUrl != placeholder)
-                                ? snap.mediaUrl
-                                : placeholder,
+                  const Spacer(),
+                  Text(
+                    _getRelativeTime(post.createdAt),
+                    style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        // Bottom Add Comment Bar
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: Colors.grey[300],
+                child: const Icon(
+                  Icons.person,
+                  size: 16,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => _showCommentsBottomSheet(post),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      'Add a comment...',
+                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+      ],
+    ),
+  );
+}
+
+  
+
+// Widget _buildSnapGrid(Future<List<SnapModel>> future) {
+//   return Column(
+//     children: [
+//       _buildSubmissionBar(
+//         "Submit your snap here for review",
+//         postType: PostType.cycleSnap,
+//       ),
+//       Expanded(
+//         child: FutureBuilder<List<SnapModel>>(
+//           key: ValueKey('snaps_$_snapsRefreshKey'),
+//           future: future,
+//           builder: (context, snapshot) {
+//             if (snapshot.connectionState == ConnectionState.waiting) {
+//               return const Center(child: CircularProgressIndicator());
+//             }
+//             if (snapshot.hasError) {
+//               print('Snaps API Error: ${snapshot.error}');
+//               return Center(child: Text("Error: ${snapshot.error}"));
+//             }
+//             if (!snapshot.hasData || snapshot.data!.isEmpty) {
+//               return const Center(child: Text("No snaps found"));
+//             }
+
+//             return GridView.builder(
+//               padding: const EdgeInsets.fromLTRB(16, 16, 16, 10.0),
+//               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+//                 crossAxisCount: 2,
+//                 childAspectRatio: 0.7,
+//                 crossAxisSpacing: 12,
+//                 mainAxisSpacing: 16,
+//               ),
+//               itemCount: snapshot.data!.length,
+//               itemBuilder: (context, index) {
+//                 final snap = snapshot.data![index];
+//                 return GestureDetector(
+//                   onTap: () {
+//                     Navigator.push(
+//                       context,
+//                       MaterialPageRoute(
+//                         builder: (_) => CycleSnapDetailScreen(
+//                           snapId: snap.id, // ✅ id pass ho rahi hai
+//                         ),
+//                       ),
+//                     );
+//                   },
+//                   child: Container(
+//                     decoration: BoxDecoration(
+//                       borderRadius: BorderRadius.circular(12),
+//                       boxShadow: [
+//                         BoxShadow(
+//                           color: Colors.black.withOpacity(0.1),
+//                           blurRadius: 6,
+//                           offset: const Offset(0, 3),
+//                         ),
+//                       ],
+//                     ),
+//                     child: Stack(
+//                       children: [
+//                         // Main Image
+//                         ClipRRect(
+//                           borderRadius: BorderRadius.circular(12),
+//                           child: CachedNetworkImage(
+//                             imageUrl: (snap.mediaUrl.isNotEmpty &&
+//                                     snap.mediaUrl != 'null' &&
+//                                     snap.mediaUrl != placeholder)
+//                                 ? snap.mediaUrl
+//                                 : placeholder,
+//                             fit: BoxFit.cover,
+//                             width: double.infinity,
+//                             height: double.infinity,
+//                             placeholder: (context, url) => Container(
+//                               color: Colors.grey[300],
+//                               child: const Center(
+//                                 child: CircularProgressIndicator(),
+//                               ),
+//                             ),
+//                             errorWidget: (context, url, error) {
+//                               debugPrint(
+//                                 'Cycle Snap image load error: $error for URL: ${snap.mediaUrl}',
+//                               );
+//                               return Container(
+//                                 color: Colors.grey[300],
+//                                 child: const Icon(Icons.broken_image, size: 40),
+//                               );
+//                             },
+//                           ),
+//                         ),
+
+//                         // Gradient Overlay
+//                         Positioned.fill(
+//                           child: Container(
+//                             decoration: BoxDecoration(
+//                               borderRadius: BorderRadius.circular(12),
+//                               gradient: LinearGradient(
+//                                 begin: Alignment.topCenter,
+//                                 end: Alignment.bottomCenter,
+//                                 colors: [
+//                                   Colors.transparent,
+//                                   Colors.black.withOpacity(0.3),
+//                                   Colors.black.withOpacity(0.7),
+//                                 ],
+//                                 stops: const [0.0, 0.4, 1.0],
+//                               ),
+//                             ),
+//                           ),
+//                         ),
+
+//                         // Bottom Content
+//                         Positioned(
+//                           bottom: 8,
+//                           left: 8,
+//                           right: 8,
+//                           child: Column(
+//                             crossAxisAlignment: CrossAxisAlignment.start,
+//                             mainAxisSize: MainAxisSize.min,
+//                             children: [
+//                               Text(
+//                                 (snap.title.isNotEmpty && snap.title != 'null')
+//                                     ? snap.title
+//                                     : 'Cycle Snap',
+//                                 style: const TextStyle(
+//                                   color: Colors.white,
+//                                   fontSize: 11,
+//                                   fontWeight: FontWeight.bold,
+//                                 ),
+//                                 maxLines: 2,
+//                                 overflow: TextOverflow.ellipsis,
+//                               ),
+//                               const SizedBox(height: 2),
+//                               if (snap.authorEmail != null)
+//                                 Text(
+//                                   snap.authorEmail!.split('@').first,
+//                                   style: TextStyle(
+//                                     color: Colors.white.withOpacity(0.7),
+//                                     fontSize: 9,
+//                                   ),
+//                                 ),
+//                             ],
+//                           ),
+//                         ),
+
+//                         // Top-right More Icon
+//                         Positioned(
+//                           top: 8,
+//                           right: 8,
+//                           child: GestureDetector(
+//                             onTap: () => print(
+//                               'More options clicked for: ${snap.title}',
+//                             ),
+//                             child: Container(
+//                               padding: const EdgeInsets.all(6),
+//                               decoration: BoxDecoration(
+//                                 color: Colors.black.withOpacity(0.8),
+//                                 shape: BoxShape.circle,
+//                                 boxShadow: [
+//                                   BoxShadow(
+//                                     color: Colors.black.withOpacity(0.3),
+//                                     blurRadius: 4,
+//                                     offset: const Offset(0, 2),
+//                                   ),
+//                                 ],
+//                               ),
+//                               child: const Icon(
+//                                 Icons.more_vert,
+//                                 color: Colors.white,
+//                                 size: 18,
+//                               ),
+//                             ),
+//                           ),
+//                         ),
+
+//                         // Play Icon for Videos
+//                         if (snap.type == 'video')
+//                           Center(
+//                             child: Icon(
+//                               Icons.play_circle_filled,
+//                               color: Colors.white,
+//                               size: 48,
+//                               shadows: [
+//                                 Shadow(
+//                                   color: Colors.black.withOpacity(0.5),
+//                                   blurRadius: 8,
+//                                   offset: const Offset(0, 2),
+//                                 ),
+//                               ],
+//                             ),
+//                           ),
+//                       ],
+//                     ),
+//                   ),
+//                 );
+//               },
+//             );
+//           },
+//         ),
+//       ),
+//     ],
+//   );
+// }
+
+Widget _buildSnapGrid(Future<List<SnapModel>> future) {
+  return Column(
+    children: [
+      _buildSubmissionBar(
+        "Submit your snap here for review",
+        postType: PostType.cycleSnap,
+      ),
+      Expanded(
+        child: FutureBuilder<List<SnapModel>>(
+          key: ValueKey('snaps_$_snapsRefreshKey'),
+          future: future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              print('Snaps API Error: ${snapshot.error}');
+              return Center(child: Text("Error: ${snapshot.error}"));
+            }
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const Center(child: Text("No snaps found"));
+            }
+
+            return GridView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 10.0),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.7,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 16,
+              ),
+              itemCount: snapshot.data!.length,
+              itemBuilder: (context, index) {
+                final snap = snapshot.data![index];
+
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CycleSnapDetailScreen(snapId: snap.id),
+                      ),
+                    );
+                  },
+                  child: FutureBuilder<Uint8List?>(
+                    future: snap.type == 'video'
+                        ? VideoThumbnail.thumbnailData(
+                            video: snap.mediaUrl,
+                            imageFormat: ImageFormat.JPEG,
+                            maxWidth: 400,
+                            quality: 75,
+                          )
+                        : null,
+                    builder: (context, thumbSnapshot) {
+                      Widget mediaWidget;
+
+                      if (snap.type == 'video') {
+                        if (thumbSnapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          mediaWidget = Container(
+                            color: Colors.grey[300],
+                            child: const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        } else if (thumbSnapshot.hasData) {
+                          mediaWidget = Image.memory(
+                            thumbSnapshot.data!,
                             fit: BoxFit.cover,
                             width: double.infinity,
                             height: double.infinity,
-                            placeholder: (context, url) => Container(
+                          );
+                        } else {
+                          mediaWidget = Container(
+                            color: Colors.grey[300],
+                            child: const Icon(Icons.broken_image, size: 40),
+                          );
+                        }
+                      } else {
+                        mediaWidget = CachedNetworkImage(
+                          imageUrl: (snap.mediaUrl.isNotEmpty &&
+                                  snap.mediaUrl != 'null' &&
+                                  snap.mediaUrl != placeholder)
+                              ? snap.mediaUrl
+                              : placeholder,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                          placeholder: (context, url) => Container(
+                            color: Colors.grey[300],
+                            child: const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          ),
+                          errorWidget: (context, url, error) {
+                            debugPrint(
+                                'Cycle Snap image load error: $error for URL: ${snap.mediaUrl}');
+                            return Container(
                               color: Colors.grey[300],
-                              child: const Center(
-                                child: CircularProgressIndicator(),
-                              ),
-                            ),
-                            errorWidget: (context, url, error) {
-                              debugPrint(
-                                'Cycle Snap image load error: $error for URL: ${snap.mediaUrl}',
-                              );
-                              return Container(
-                                color: Colors.grey[300],
-                                child: const Icon(Icons.broken_image, size: 40),
-                              );
-                            },
-                          ),
-                        ),
+                              child: const Icon(Icons.broken_image, size: 40),
+                            );
+                          },
+                        );
+                      }
 
-                        // Gradient Overlay for better text visibility
-                        Positioned.fill(
-                          child: Container(
-                            decoration: BoxDecoration(
+                      return Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 6,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Stack(
+                          children: [
+                            ClipRRect(
                               borderRadius: BorderRadius.circular(12),
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.transparent,
-                                  Colors.black.withOpacity(0.3),
-                                  Colors.black.withOpacity(0.7),
-                                ],
-                                stops: const [0.0, 0.4, 1.0],
+                              child: mediaWidget,
+                            ),
+
+                            // Gradient Overlay
+                            Positioned.fill(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Colors.transparent,
+                                      Colors.black.withOpacity(0.3),
+                                      Colors.black.withOpacity(0.7),
+                                    ],
+                                    stops: const [0.0, 0.4, 1.0],
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
 
-                        // Bottom Content
-                        Positioned(
-                          bottom: 8,
-                          left: 8,
-                          right: 8,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Title
-                              Text(
-                                (snap.title.isNotEmpty && snap.title != 'null')
-                                    ? snap.title
-                                    : 'Cycle Snap',
-                                style: const TextStyle(
+                            // Bottom Content
+                            Positioned(
+                              bottom: 8,
+                              left: 8,
+                              right: 8,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    (snap.title.isNotEmpty &&
+                                            snap.title != 'null')
+                                        ? snap.title
+                                        : 'Cycle Snap',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  if (snap.authorEmail != null)
+                                    Text(
+                                      snap.authorEmail!.split('@').first,
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.7),
+                                        fontSize: 9,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+
+                            // Top-right More Icon
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: GestureDetector(
+                                onTap: () => print(
+                                    'More options clicked for: ${snap.title}'),
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.8),
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.3),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.more_vert,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            // ✅ Play Icon overlay for videos
+                            if (snap.type == 'video')
+                              const Center(
+                                child: Icon(
+                                  Icons.play_circle_fill,
                                   color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
+                                  size: 48,
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.black54,
+                                      blurRadius: 8,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
                                 ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: 2),
-                              // Author and Date
-                              if (snap.authorEmail != null)
-                                Text(
-                                  snap.authorEmail!.split('@').first,
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.7),
-                                    fontSize: 9,
-                                  ),
-                                ),
-                            ],
-                          ),
+                          ],
                         ),
-
-                        // Top-right More Icon
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: GestureDetector(
-                            onTap: () => print(
-                              'More options clicked for: ${snap.title}',
-                            ),
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.8),
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.3),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.more_vert,
-                                color: Colors.white,
-                                size: 18,
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        // Play Icon for Videos
-                        if (snap.type == 'video')
-                          Center(
-                            child: Icon(
-                              Icons.play_circle_filled,
-                              color: Colors.white,
-                              size: 48,
-                              shadows: [
-                                Shadow(
-                                  color: Colors.black.withOpacity(0.5),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
-                  );
-                },
-              );
-            },
-          ),
+                      );
+                    },
+                  ),
+                );
+              },
+            );
+          },
         ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
+}
+
+
+  
 
   // --- Keep your existing UI UI Components ---
   Widget _buildCustomTabBar() {

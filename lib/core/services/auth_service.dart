@@ -8,6 +8,13 @@ import '../models/api_response.dart';
 import '../models/register_request.dart';
 import '../../features/auth/models/period_setup_request.dart';
 import 'token_storage_service.dart';
+import 'community_api_service.dart';
+import 'package:my_app/features/auth/models/article_model.dart';
+import 'package:my_app/features/auth/models/tracker_article_detail.dart';
+import 'package:my_app/features/auth/models/period_tracker_section.dart';
+import 'package:my_app/features/auth/models/user_period_options.dart';
+import 'package:my_app/features/auth/models/cycle_snap_detail.dart';
+
 
 /// Custom API exceptions for better error handling
 class ApiException implements Exception {
@@ -125,6 +132,7 @@ class AuthService {
         final token = await TokenStorageService.instance.getToken();
         if (token != null && token.isNotEmpty) {
           requestHeaders['Authorization'] = 'Bearer $token';
+           print('Access Token: $token');
         }
       }
 
@@ -1130,4 +1138,171 @@ class AuthService {
       );
     }
   }
+
+  /// ✅ Wrapper to expose token
+Future<String?> getToken() async {
+  return await TokenStorageService.instance.getToken();
 }
+
+// /// ✅ Fetch period tracker options
+// Future<ApiResponse<List<TrackerSection>>> getPeriodTrackerOptions() async {
+//   try {
+//     final response = await _makeRequest<Map<String, dynamic>>(
+//       'GET',
+//       '/period-tracker/options',
+//       requiresAuth: true,
+//     );
+
+//     if (response.success && response.data != null) {
+//       final sectionsJson = response.data!['sections'] as List<dynamic>;
+//       final sections = sectionsJson
+//           .map((e) => TrackerSection.fromJson(e as Map<String, dynamic>))
+//           .toList();
+//       return ApiResponse.success(sections);
+//     } else {
+//       return ApiResponse.error(response.error ?? 'Failed to fetch options');
+//     }
+//   } catch (e) {
+//     return ApiResponse.error('Error fetching tracker options: $e');
+//   }
+// }
+
+Future<ApiResponse<List<PeriodTrackerSection>>> getPeriodTrackerOptions() async {
+  try {
+    final response = await _makeRequest<Map<String, dynamic>>(
+      'GET',
+      '/period-tracker/options',
+      requiresAuth: true,
+    );
+
+    if (response.success && response.data != null) {
+      // ✅ Correct: use "data" instead of "sections"
+      final sectionsJson = response.data!['data'] as List<dynamic>;
+      final sections = sectionsJson
+          .map((e) => PeriodTrackerSection.fromJson(e as Map<String, dynamic>))
+          .toList();
+      return ApiResponse.success(sections);
+    } else {
+      return ApiResponse.error(response.error ?? 'Failed to fetch options');
+    }
+  } catch (e) {
+    return ApiResponse.error('Error fetching tracker options: $e');
+  }
+}
+
+
+/// ✅ Fetch menstrual health articles
+Future<ApiResponse<List<TrackerArticle>>> getPeriodTrackerArticles() async {
+  try {
+    final response = await _makeRequest<Map<String, dynamic>>(
+      'GET',
+      '/period-tracker/articles',
+      requiresAuth: true,
+    );
+
+    if (response.success && response.data != null) {
+      final articlesJson = response.data!['data'] as List<dynamic>;
+      final articles = articlesJson
+          .map((e) => TrackerArticle.fromJson(e as Map<String, dynamic>))
+          .toList();
+      return ApiResponse.success(articles);
+    } else {
+      return ApiResponse.error(response.error ?? 'Failed to fetch articles');
+    }
+  } catch (e) {
+    return ApiResponse.error('Error fetching articles: $e');
+  }
+}
+
+Future<ApiResponse<TrackerArticleDetail>> getArticleDetail(String slug) async {
+  try {
+    final response = await _makeRequest<Map<String, dynamic>>(
+      'GET',
+      '/period-tracker/articles/$slug',
+      requiresAuth: true,
+    );
+
+    if (response.success && response.data != null) {
+      // yahan andar ka "data" extract karo
+      final detail = TrackerArticleDetail.fromJson(response.data!['data']);
+      return ApiResponse.success(detail);
+    } else {
+      return ApiResponse.error(response.error ?? 'Failed to fetch article detail');
+    }
+  } catch (e) {
+    return ApiResponse.error('Error fetching article detail: $e');
+  }
+}
+
+Future<ApiResponse<dynamic>> updatePeriodOptions(
+  String endpoint,
+  Map<String, dynamic> body, {
+  bool requiresAuth = false,
+}) async {
+  try {
+    final response = await _makeRequest<Map<String, dynamic>>(
+      'PUT',
+      endpoint,
+      body: body,
+      requiresAuth: requiresAuth,
+    );
+
+    if (response.success) {
+      return ApiResponse.success(response.data);
+    } else {
+      return ApiResponse.error(response.error ?? 'Failed to update');
+    }
+  } catch (e) {
+    return ApiResponse.error('Error during PUT request: $e');
+  }
+}
+Future<ApiResponse<UserPeriodOptions>> getUserPeriodOptions() async {
+  try {
+    final response = await _makeRequest<Map<String, dynamic>>(
+      'GET',
+      '/period-tracker/user-options',
+      requiresAuth: true,
+    );
+
+    if (response.success && response.data != null) {
+      return ApiResponse.success(UserPeriodOptions.fromJson(response.data!));
+    } else {
+      return ApiResponse.error(response.error ?? 'Failed to fetch user options');
+    }
+  } catch (e) {
+    return ApiResponse.error('Error fetching user options: $e');
+  }
+}
+
+
+/// Fetch Cycle Snap Detail
+Future<ApiResponse<CycleSnapDetail>> fetchCycleSnapDetail(String id) async {
+  try {
+    final response = await _makeRequest<Map<String, dynamic>>(
+      'GET',
+      '/cycle-snaps/$id',
+      requiresAuth: true,
+    );
+
+    if (response.success && response.data != null) {
+      return ApiResponse.success(
+        CycleSnapDetail.fromJson(response.data!),
+        statusCode: response.statusCode,
+      );
+    } else {
+      return ApiResponse.error(
+        response.error ?? 'Failed to fetch cycle snap detail',
+        statusCode: response.statusCode,
+      );
+    }
+  } catch (e) {
+    return ApiResponse.error('Error fetching cycle snap detail: $e');
+  }
+}
+
+
+
+
+}
+
+

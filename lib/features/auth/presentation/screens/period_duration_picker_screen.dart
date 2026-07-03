@@ -32,6 +32,26 @@ class _PeriodDurationPickerScreenState
   void initState() {
     super.initState();
     debugPrint('EDIT FLOW: PeriodDurationPickerScreen | isEditMode = ${widget.isEditMode}');
+    // ✅ Auto scroll after 1 second
+  Future.delayed(const Duration(seconds: 1), () {
+    if (mounted) {
+      _scrollController.animateToItem(
+        9, // for example index 9 = value 10
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.easeInOut,
+      );
+    }
+  });
+  Future.delayed(const Duration(seconds: 2), () {
+  if (mounted) {
+    _scrollController.animateToItem(
+      7, // back to default index = value 8
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeInOut,
+    );
+  }
+});
+
   }
 
   @override

@@ -52,6 +52,25 @@ class _CycleLengthPickerScreenState
       initialItem:
           initialIndex >= 0 ? initialIndex : 7,
     );
+
+    Future.delayed(const Duration(seconds: 1), () {
+    if (mounted) {
+      _controller.animateToItem(
+        9, // for example index 9 = value 10
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.easeInOut,
+      );
+    }
+  });
+  Future.delayed(const Duration(seconds: 2), () {
+  if (mounted) {
+    _controller.animateToItem(
+      7, // back to default index = value 8
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeInOut,
+    );
+  }
+});
   }
 
   @override

@@ -9,6 +9,12 @@ import 'community_screen.dart';
 import 'dynamic_community_screen.dart';
 import 'live_stream_screen.dart';
 import 'settings_screen.dart';
+import 'package:my_app/features/auth/models/article_model.dart';
+import 'package:my_app/features/auth/models/tracker_article_detail.dart';
+import 'tracker_article_detail_screen.dart';
+
+
+
 
 class CalendarDay {
   final int day;
@@ -62,13 +68,29 @@ class _TrackerScreenState extends State<TrackerScreen> {
   int _ovulationStartDay = 14;
 
   DateTime _currentMonth = DateTime.now();
+ List<TrackerArticle> _articles = [];
 
   @override
   void initState() {
     super.initState();
     apiData = _generateDefaultCalendarData();
     _fetchPeriodTrackerSetup();
+    _fetchArticles();
   }
+
+Future<void> _fetchArticles() async {
+  try {
+    final authService = AuthService();
+    final response = await authService.getPeriodTrackerArticles();
+    if (mounted && response.success && response.data != null) {
+      setState(() {
+        _articles = response.data!;
+      });
+    }
+  } catch (e) {
+    debugPrint("❌ Error fetching articles: $e");
+  }
+}
 
   Future<void> _fetchPeriodTrackerSetup() async {
     try {
@@ -281,7 +303,51 @@ class _TrackerScreenState extends State<TrackerScreen> {
       physics: const BouncingScrollPhysics(),
       child: Column(
         children: [
-          // Stack का उपयोग करके बटन को नीले कंटेनर के बॉर्डर पर बिल्कुल आधा अंदर-आधा बाहर सेट किया गया है
+        // 🔹 Top message with styled Edit button
+Padding(
+  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
+  child: Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Expanded(
+        child: Text(
+          "Your predictions are based on limited data.\nAdd a few details to improve accuracy.",
+          style: TextStyle(
+            color: navyBlue,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+      ElevatedButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const CustomizePeriod(),
+            ),
+          ).then((_) => _fetchPeriodTrackerSetup());
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.blue, // ✅ Blue background
+          foregroundColor: Colors.white, // ✅ White text
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20), // ✅ Rounded corners
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+        ),
+        child: const Text(
+          "Edit",
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
+      ),
+    ],
+  ),
+),
+
           Stack(
             clipBehavior: Clip.none,
             children: [
@@ -324,12 +390,12 @@ class _TrackerScreenState extends State<TrackerScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 50), // बटन के ओवरफ्लो होने के कारण नीचे के सेक्शन से स्पेस को एडजस्ट किया गया
+          const SizedBox(height: 30), // बटन के ओवरफ्लो होने के कारण नीचे के सेक्शन से स्पेस को एडजस्ट किया गया
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: _tipsSectionOutside(),
           ),
-          const SizedBox(height: 120),
+          const SizedBox(height: 0),
         ],
       ),
     );
@@ -347,7 +413,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
           'Your Tracker',
           style: TextStyle(
             color: navyBlue,
-            fontSize: 26,
+            fontSize: 20,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -581,41 +647,53 @@ class _TrackerScreenState extends State<TrackerScreen> {
   }
 
   Widget _tipsSectionOutside() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(8, 18, 8, 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Menstrual Health Tips',
-            style: TextStyle(
-              color: navyBlue,
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-            ),
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.fromLTRB(8, 18, 8, 10),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Menstrual Health Tips (Daily Insights)',
+          style: TextStyle(
+            color: navyBlue,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
           ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 150,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                _insightCard(Icons.opacity, const Color(0xFFF4C05A)),
-                _insightCard(Icons.restaurant, const Color(0xFFF19B47)),
-                _insightCard(Icons.fitness_center, const Color(0xFFF08B5A)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+        ),
+        const SizedBox(height: 16),
 
-  Widget _insightCard(IconData icon, Color iconColor) {
-    return Container(
-      width: 120,
-      margin: const EdgeInsets.only(right: 18),
+  SizedBox(
+    height: 170,
+    child: _articles.isEmpty
+        ? const Center(child: Text("No tips available"))
+        : ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: _articles.length,
+            itemBuilder: (context, index) {
+              final article = _articles[index];
+              return _insightCard(Icons.lightbulb, const Color(0xFFF4C05A), article.title,article.slug);
+            },
+          ),
+  ),
+      ],
+    ),
+  );
+}
+
+Widget _insightCard(IconData icon, Color iconColor, String title, String slug) {
+  return InkWell(
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TrackerArticleDetailScreen(slug: slug),
+        ),
+      );
+    },
+    child: Container(
+      width: 140,
+      margin: const EdgeInsets.only(right: 0,left: 0),
       child: Column(
         children: [
           Container(
@@ -631,32 +709,37 @@ class _TrackerScreenState extends State<TrackerScreen> {
                   offset: const Offset(0, 6),
                 ),
               ],
+              border: Border.all(
+                color: Colors.blue, // border color
+                width: 2,           // border width
+              ),
             ),
             child: Center(
-              child: Container(
-                height: 78,
-                width: 78,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      iconColor.withOpacity(0.28),
-                      iconColor.withOpacity(0.08),
-                    ],
-                  ),
-                  border: Border.all(
-                    color: iconColor.withOpacity(0.45),
-                    width: 2,
-                  ),
-                ),
-                child: Icon(icon, color: iconColor, size: 38),
+              child: Icon(icon, color: iconColor, size: 38),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 50, // fixed height for text area
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: navyBlue,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
               ),
             ),
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
+
+
 
   Widget _buildBottomNavigationBar() {
     return ClipRRect(

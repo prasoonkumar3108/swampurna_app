@@ -30,7 +30,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           // Main Scrollable Content
           SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 60, 20, 100),
+            padding: const EdgeInsets.fromLTRB(20, 60, 20, 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -46,7 +46,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 20),
 
                 // Account Section
                 _buildSectionCard(
@@ -119,7 +119,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   navyBlue: navyBlue,
                   cardBg: cardBg,
                 ),
-                const SizedBox(height: 30), // Bottom breathing space
+                const SizedBox(height: 10), // Bottom breathing space
               ],
             ),
           ),

@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import '../../../../core/services/swift_community_api_service.dart';
 import '../models/community_models.dart';
 import 'news_detail_screen.dart';
+import 'dynamic_community_detail_screen.dart';
+
 
 /// Dynamic Community Screen matching Swift implementation
 /// Replaces hardcoded content with API-driven data
@@ -203,7 +205,7 @@ class _DynamicCommunityScreenState extends State<DynamicCommunityScreen>
   Widget _buildContent() {
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.only(top: 50, bottom: 2),
+      padding: const EdgeInsets.only(top: 50, bottom: 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -211,7 +213,7 @@ class _DynamicCommunityScreenState extends State<DynamicCommunityScreen>
           ..._categories
               .map((category) => _buildCategorySection(category))
               .toList(),
-          const SizedBox(height: 100), // Bottom padding
+          const SizedBox(height: 0), // Bottom padding
         ],
       ),
     );
@@ -245,7 +247,19 @@ class _DynamicCommunityScreenState extends State<DynamicCommunityScreen>
               itemCount: category.articles.length,
               itemBuilder: (context, index) {
                 final article = category.articles[index];
-                return _buildArticleCard(article);
+                //return _buildArticleCard(article);
+                return GestureDetector(
+    onTap: () {
+      debugPrint('Clicked slug....................: ${article.slug}');
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => DynamicCommunityDetailScreen(slug: article.slug ?? ''),
+        ),
+      );
+    },
+    child: _buildArticleCard(article),
+  );
               },
             ),
           )
