@@ -39,66 +39,74 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     _loadBotReplies();
     // Start message
-    _messages.add(ChatMessage(
-      text: "Hello! I am Swampurna, How can I help you?",
-      options: ["Menstruation", "Pregnancy", "Nutrition", "Mental Health"],
-    ));
+    // _messages.add(ChatMessage(
+    //   text: "Hello! I am Swampurna, How can I help you?",
+    //   options: ["Menstruation", "Pregnancy", "Nutrition", "Mental Health"],
+    // ));
   }
 
   void _loadBotReplies() {
     const String jsonData = '''
     {
-      "messages": [
-        {
-          "id": 1,
-          "trigger": "menstruation",
-          "response": {
-            "text": "Periods are natural. What do you want to know?",
-            "options": ["Myths", "Health Tips", "Cycle Tracking"]
-          }
-        },
-        {
-          "id": 2,
-          "trigger": "myths",
-          "response": {
-            "text": "Myth: You are impure during periods. Fact: False! You are completely normal.",
-            "options": null
-          }
-        },
-        {
-          "id": 3,
-          "trigger": "health tips",
-          "response": {
-            "text": "Eat iron-rich food, stay hydrated, and do light exercise.",
-            "options": null
-          }
-        },
-        {
-          "id": 4,
-          "trigger": "pregnancy",
-          "response": {
-            "text": "Pregnancy is a beautiful journey. Do you want info about diet or checkups?",
-            "options": ["Diet", "Checkups"]
-          }
-        },
-        {
-          "id": 5,
-          "trigger": "nutrition",
-          "response": {
-            "text": "Balanced diet is key. Do you want vegetarian or non-vegetarian tips?",
-            "options": ["Vegetarian", "Non-Vegetarian"]
-          }
-        },
-        {
-          "id": 6,
-          "trigger": "mental health",
-          "response": {
-            "text": "Mental health matters. Do you want stress management tips or counseling info?",
-            "options": ["Stress Management", "Counseling"]
-          }
-        }
-      ]
+  "messages": [
+    {
+      "id": 0,
+      "trigger": "start",
+      "response": {
+        "text": "Hello! I am Swampurna, How can I help you? Please type or select below options to get more details",
+        "options": ["Menstruation", "Pregnancy", "Nutrition", "Mental Health"]
+      }
+    },
+    {
+      "id": 1,
+      "trigger": "menstruation",
+      "response": {
+        "text": "Periods are natural. What do you want to know?",
+        "options": ["Myths", "Health Tips", "Cycle Tracking"]
+      }
+    },
+    {
+      "id": 2,
+      "trigger": "myths",
+      "response": {
+        "text": "Myth: You are impure during periods. Fact: False! You are completely normal.",
+        "options": null
+      }
+    },
+    {
+      "id": 3,
+      "trigger": "health tips",
+      "response": {
+        "text": "Eat iron-rich food, stay hydrated, and do light exercise.",
+        "options": null
+      }
+    },
+    {
+      "id": 4,
+      "trigger": "pregnancy",
+      "response": {
+        "text": "Pregnancy is a beautiful journey. Do you want info about diet or checkups?",
+        "options": ["Diet", "Checkups"]
+      }
+    },
+    {
+      "id": 5,
+      "trigger": "nutrition",
+      "response": {
+        "text": "Balanced diet is key. Do you want vegetarian or non-vegetarian tips?",
+        "options": ["Vegetarian", "Non-Vegetarian"]
+      }
+    },
+    {
+      "id": 6,
+      "trigger": "mental health",
+      "response": {
+        "text": "Mental health matters. Do you want stress management tips or counseling info?",
+        "options": ["Stress Management", "Counseling"]
+      }
     }
+  ]
+}
     ''';
 
     final data = jsonDecode(jsonData);
@@ -107,6 +115,9 @@ class _ChatScreenState extends State<ChatScreen> {
       for (var msg in messages)
         msg['trigger'].toString().toLowerCase(): ChatMessage.fromJson(msg)
     };
+    // 👇 Start message 
+  final startMsg = messages.firstWhere((m) => m['trigger'] == 'start');
+  _messages.add(ChatMessage.fromJson(startMsg));
   }
 
   void _sendMessage(String text) {

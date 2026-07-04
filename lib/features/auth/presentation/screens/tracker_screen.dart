@@ -12,6 +12,8 @@ import 'settings_screen.dart';
 import 'package:my_app/features/auth/models/article_model.dart';
 import 'tracker_article_detail_screen.dart';
 import 'chat.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 
 class CalendarDay {
   final int day;
@@ -42,6 +44,8 @@ class TrackerScreen extends StatefulWidget {
 
 class _TrackerScreenState extends State<TrackerScreen> {
   int _currentIndex = 0;
+  bool _fabExpanded = false;
+
 
   final Color bgTop = const Color(0xFFDDEAF8);
   final Color bgBottom = const Color(0xFFF7F8FB);
@@ -274,22 +278,64 @@ Future<void> _fetchArticles() async {
           ),
         ),
       ),
-      floatingActionButton: _currentIndex == 0
-          ? Padding(
-              padding: const EdgeInsets.only(bottom: 70),
-              child: FloatingActionButton(
-                heroTag: 'tracker_fab',
-                onPressed: () => navigateTo(const ChatScreen()),
-                backgroundColor: const Color(0xFF3A4685),
-                elevation: 6,
-                child: const Icon(Icons.add, color: Colors.white, size: 32),
-              ),
-            )
-          : null,
+      floatingActionButton:  buildFAB(context),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
+  Widget buildFAB(BuildContext context) {
+  if (_currentIndex != 0) return const SizedBox();
+
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 70),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        // Agar expanded hai to mini buttons dikhao
+        if (_fabExpanded) ...[
+          FloatingActionButton(
+            heroTag: 'msg_fab',
+            mini: true,
+            backgroundColor: const Color(0xFF4A4F7C),
+            onPressed: () => navigateTo(const ChatScreen()),
+            child: const Icon(Icons.message, color: Colors.white),
+          ),
+          const SizedBox(height: 10),
+          FloatingActionButton(
+            heroTag: 'call_fab',
+            mini: true,
+            backgroundColor: Colors.blue,
+            onPressed: () {
+              // Example: call number 1
+              launchUrl(Uri.parse("tel:+919599801033"));
+            },
+            child: const Icon(Icons.call, color: Colors.white),
+          ),
+          const SizedBox(height: 10),
+        ],
+
+        // Main FAB (add/cross toggle)
+        FloatingActionButton(
+          heroTag: 'main_fab',
+          backgroundColor: const Color(0xFF3A4685),
+          elevation: 6,
+          onPressed: () {
+            setState(() {
+              _fabExpanded = !_fabExpanded;
+            });
+          },
+          child: Icon(
+            _fabExpanded ? Icons.close : Icons.add,
+            color: Colors.white,
+            size: 32,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 
   Widget _mainTrackerView() {
     if (_isLoading) {

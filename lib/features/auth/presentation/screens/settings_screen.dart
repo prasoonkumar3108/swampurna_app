@@ -6,6 +6,8 @@ import 'report_problem_screen.dart';
 import 'jan_aushadhi_search_screen.dart';
 import 'common_webview_screen.dart';
 import 'mobile_input_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'chat.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -21,6 +23,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final Color cardBg = const Color(0xFFD1EBEA);
 
   bool _isLoggingOut = false;
+  bool _fabExpanded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -123,32 +126,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ),
-
-          // Right-side Action Stack
-          Positioned(
-            bottom: 20,
-            right: 20,
-            child: Column(
-              children: [
-                _circularButton(Icons.phone_outlined, Colors.white, navyBlue),
-                const SizedBox(height: 12),
-                _circularButton(
-                  Icons.chat_bubble_outline,
-                  Colors.white,
-                  navyBlue,
-                ),
-                const SizedBox(height: 12),
-                _circularButton(
-                  Icons.close,
-                  navyBlue,
-                  Colors.white,
-                  isLarge: true,
-                ),
-              ],
-            ),
-          ),
         ],
       ),
+    floatingActionButton: buildFAB(context),
+    floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 
@@ -403,5 +384,69 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       child: Icon(icon, color: iconColor, size: isLarge ? 30 : 22),
     );
+  }
+
+  Widget buildFAB(BuildContext context) {
+
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 70),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        // Agar expanded hai to mini buttons dikhao
+        if (_fabExpanded) ...[
+          FloatingActionButton(
+            heroTag: 'msg_fab',
+            mini: true,
+            backgroundColor: const Color(0xFF4A4F7C),
+            onPressed: () => navigateTo(const ChatScreen()),
+            child: const Icon(Icons.message, color: Colors.white),
+          ),
+          const SizedBox(height: 10),
+          FloatingActionButton(
+            heroTag: 'call_fab',
+            mini: true,
+            backgroundColor: Colors.blue,
+            onPressed: () {
+              // Example: call number 1
+              //launchUrl(Uri.parse("tel:+919599801033"));
+              _makePhoneCall("+919599801033");
+            },
+            child: const Icon(Icons.call, color: Colors.white),
+          ),
+          const SizedBox(height: 10),
+        ],
+
+        // Main FAB (add/cross toggle)
+        FloatingActionButton(
+          heroTag: 'main_fab',
+          backgroundColor: const Color(0xFF3A4685),
+          elevation: 6,
+          onPressed: () {
+            setState(() {
+              _fabExpanded = !_fabExpanded;
+            });
+          },
+          child: Icon(
+            _fabExpanded ? Icons.close : Icons.add,
+            color: Colors.white,
+            size: 32,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+Future<void> _makePhoneCall(String number) async {
+  final Uri callUri = Uri(scheme: 'tel', path: number);
+  if (await canLaunchUrl(callUri)) {
+    await launchUrl(callUri);
+  } else {
+    throw 'Could not launch $number';
+  }
+}
+void navigateTo(Widget screen) {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
   }
 }
