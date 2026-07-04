@@ -10,11 +10,7 @@ import 'dynamic_community_screen.dart';
 import 'live_stream_screen.dart';
 import 'settings_screen.dart';
 import 'package:my_app/features/auth/models/article_model.dart';
-import 'package:my_app/features/auth/models/tracker_article_detail.dart';
 import 'tracker_article_detail_screen.dart';
-
-
-
 
 class CalendarDay {
   final int day;
@@ -47,7 +43,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
   int _currentIndex = 0;
 
   final Color bgTop = const Color(0xFFDDEAF8);
-  final Color bgBottom = const Color(0xFFF7F8FB);
+  final Color bgBottom =  const Color(0xFFF7F8FB);
   final Color navyBlue = const Color(0xFF4A4F7C);
   final Color periodPink = const Color(0xFFE34B7E);
   final Color postPurple = const Color(0xFF5D2A86);
