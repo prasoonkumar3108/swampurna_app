@@ -6,7 +6,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:share_plus/share_plus.dart';
 import 'create_post_screen.dart';
-import 'chat_screen.dart';
 import 'blog_detail_screen.dart';
 import 'package:my_app/features/auth/presentation/screens/cycle_snap_detail_screen.dart';
 import 'dart:typed_data'; // for Uint8List
