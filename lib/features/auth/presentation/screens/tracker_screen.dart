@@ -11,6 +11,7 @@ import 'live_stream_screen.dart';
 import 'settings_screen.dart';
 import 'package:my_app/features/auth/models/article_model.dart';
 import 'tracker_article_detail_screen.dart';
+import 'chat.dart';
 
 class CalendarDay {
   final int day;
@@ -43,7 +44,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
   int _currentIndex = 0;
 
   final Color bgTop = const Color(0xFFDDEAF8);
-  final Color bgBottom =  const Color(0xFFF7F8FB);
+  final Color bgBottom = const Color(0xFFF7F8FB);
   final Color navyBlue = const Color(0xFF4A4F7C);
   final Color periodPink = const Color(0xFFE34B7E);
   final Color postPurple = const Color(0xFF5D2A86);
@@ -278,7 +279,7 @@ Future<void> _fetchArticles() async {
               padding: const EdgeInsets.only(bottom: 70),
               child: FloatingActionButton(
                 heroTag: 'tracker_fab',
-                onPressed: () => navigateTo(const CustomizePeriod()),
+                onPressed: () => navigateTo(const ChatScreen()),
                 backgroundColor: const Color(0xFF3A4685),
                 elevation: 6,
                 child: const Icon(Icons.add, color: Colors.white, size: 32),

@@ -59,5 +59,7 @@ flutter:
     - assets/images/like.png
     - assets/images/chat.png
     - assets/images/send.png
+    - assets/images/sp.png
+    - assets/images/imoji.png
 
 
