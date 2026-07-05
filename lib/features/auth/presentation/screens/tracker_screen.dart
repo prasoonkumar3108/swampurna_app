@@ -308,7 +308,8 @@ Future<void> _fetchArticles() async {
             backgroundColor: Colors.blue,
             onPressed: () {
               // Example: call number 1
-              launchUrl(Uri.parse("tel:+919599801033"));
+              //launchUrl(Uri.parse("tel:+919599801033"));
+              _makePhoneCall("+919599801033");
             },
             child: const Icon(Icons.call, color: Colors.white),
           ),
@@ -334,6 +335,14 @@ Future<void> _fetchArticles() async {
       ],
     ),
   );
+}
+Future<void> _makePhoneCall(String number) async {
+  final Uri callUri = Uri(scheme: 'tel', path: number);
+  if (await canLaunchUrl(callUri)) {
+    await launchUrl(callUri);
+  } else {
+    throw 'Could not launch $number';
+  }
 }
 
 
