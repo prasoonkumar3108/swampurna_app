@@ -368,8 +368,8 @@ class _CommunityScreenState extends State<CommunityScreen>
   }
 
   void _showCommentsBottomSheet(PostModel post) {
-    final TextEditingController _commentController = TextEditingController();
-    bool _isSubmitting = false;
+    final TextEditingController commentController = TextEditingController();
+    bool isSubmitting = false;
 
     showModalBottomSheet(
       context: context,
@@ -378,80 +378,241 @@ class _CommunityScreenState extends State<CommunityScreen>
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => StatefulBuilder(
-        builder: (context, setSheetState) => Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                  Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
-                  const SizedBox(height: 16),
-                  const Text("Comments", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                  const Divider(),
-                  SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.4,
-                    child: FutureBuilder<List<CommentModel>>(
-                      future: fetchComments(post.id),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-                        if (!snapshot.hasData || snapshot.data!.isEmpty) return const Center(child: Text("No comments yet."));
-                        
-                        return ListView.builder(
-                          itemCount: snapshot.data!.length,
-                          itemBuilder: (context, index) {
-                            final comment = snapshot.data![index];
-                            return ListTile(
-                              leading: CircleAvatar(backgroundColor: navyBlue, child: const Icon(Icons.person, size: 16, color: Colors.white)),
-                              title: Text(comment.authorEmail, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                              subtitle: Text(comment.content),
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                  const Divider(),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _commentController,
-                          decoration: const InputDecoration(hintText: "Add a comment...", border: InputBorder.none),
-                        ),
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setSheetState) {
+          final keyboardHeight = MediaQuery.of(sheetContext).viewInsets.bottom;
+
+          return Padding(
+            padding: EdgeInsets.only(bottom: keyboardHeight),
+            child: SafeArea(
+              top: false,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(sheetContext).size.height * 0.8,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 8),
+                    Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
                       ),
-                      _isSubmitting 
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                        : IconButton(
-                            icon: Icon(Icons.send, color: navyBlue),
-                            onPressed: () async {
-                              if (_commentController.text.trim().isEmpty) return;
-                              
-                              setSheetState(() => _isSubmitting = true);
-                              final success = await postComment(post, _commentController.text.trim());
-                              
-                              if (success) {
-                                _commentController.clear();
-                                // Re-fetching comments local to sheet
-                                setSheetState(() => _isSubmitting = false);
-                              } else {
-                                setSheetState(() => _isSubmitting = false);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text("Failed to post comment")),
-                                );
-                              }
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Comments',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                    const Divider(),
+                    Flexible(
+                      child: FutureBuilder<List<CommentModel>>(
+                        future: fetchComments(post.id),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const Center(child: CircularProgressIndicator());
+                          }
+                          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                            return const Center(child: Text('No comments yet.'));
+                          }
+
+                          return ListView.builder(
+                            padding: const EdgeInsets.only(top: 4),
+                            itemCount: snapshot.data!.length,
+                            itemBuilder: (context, index) {
+                              final comment = snapshot.data![index];
+                              return ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: navyBlue,
+                                  child: const Icon(
+                                    Icons.person,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                title: Text(
+                                  comment.authorEmail,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                subtitle: Text(comment.content),
+                              );
                             },
+                          );
+                        },
+                      ),
+                    ),
+                    const Divider(),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: commentController,
+                              minLines: 1,
+                              maxLines: 4,
+                              decoration: const InputDecoration(
+                                hintText: 'Add a comment...',
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 8,
+                                ),
+                              ),
+                            ),
                           ),
-                    ],
-                  ),
-              ],
+                          isSubmitting
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : IconButton(
+                                  icon: Icon(Icons.send, color: navyBlue),
+                                  onPressed: () async {
+                                    if (commentController.text.trim().isEmpty) {
+                                      return;
+                                    }
+
+                                    setSheetState(() => isSubmitting = true);
+                                    final success = await postComment(
+                                      post,
+                                      commentController.text.trim(),
+                                    );
+
+                                    if (success) {
+                                      commentController.clear();
+                                      setSheetState(() => isSubmitting = false);
+                                    } else {
+                                      setSheetState(() => isSubmitting = false);
+                                      ScaffoldMessenger.of(sheetContext).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Failed to post comment'),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
+    );
+  }
+
+  Future<void> _sharePost(PostModel post) async {
+    final title = post.title.trim();
+    final description = post.content.trim();
+    final shareText = [
+      if (title.isNotEmpty) title,
+      if (description.isNotEmpty) description,
+      if (post.imageUrl.isNotEmpty && post.imageUrl != placeholder)
+        'Image: ${post.imageUrl}',
+    ].join('\n\n');
+
+    try {
+      if (post.imageUrl.isNotEmpty && post.imageUrl != placeholder) {
+        final uri = Uri.tryParse(post.imageUrl);
+        if (uri != null) {
+          final response = await http.get(uri);
+          if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+            final contentType = response.headers['content-type'] ?? 'image/jpeg';
+            final mimeType = contentType.contains(';')
+                ? contentType.split(';').first.trim()
+                : contentType;
+            final fileName = 'post_image.${mimeType.split('/').last}';
+            final xFile = XFile.fromData(
+              response.bodyBytes,
+              mimeType: mimeType,
+              name: fileName,
+            );
+
+            await Share.shareXFiles(
+              [xFile],
+              text: shareText.isNotEmpty ? shareText : 'Shared from Community',
+              subject: title.isNotEmpty ? title : 'Shared post',
+            );
+            return;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error attaching image while sharing post: $e');
+    }
+
+    await Share.share(
+      shareText.isNotEmpty ? shareText : 'Shared from Community',
+      subject: title.isNotEmpty ? title : 'Shared post',
+    );
+  }
+
+  Future<void> _shareSnap(SnapModel snap) async {
+    final title = snap.title.trim();
+    final description = snap.description.trim();
+    final shareText = [
+      if (title.isNotEmpty) title,
+      if (description.isNotEmpty) description,
+      if (snap.mediaUrl.isNotEmpty && snap.mediaUrl != placeholder)
+        'Media: ${snap.mediaUrl}',
+    ].join('\n\n');
+
+    try {
+      if (snap.mediaUrl.isNotEmpty && snap.mediaUrl != placeholder) {
+        final uri = Uri.tryParse(snap.mediaUrl);
+        if (uri != null) {
+          final response = await http.get(uri);
+          if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+            final contentType = response.headers['content-type'] ?? '';
+            final mimeType = contentType.isNotEmpty
+                ? contentType.split(';').first.trim()
+                : (snap.type == 'video'
+                    ? 'video/mp4'
+                    : 'image/jpeg');
+            final extension = mimeType.contains('video')
+                ? 'mp4'
+                : mimeType.contains('png')
+                    ? 'png'
+                    : mimeType.contains('gif')
+                        ? 'gif'
+                        : 'jpg';
+            final fileName = 'cycle_snap.$extension';
+            final xFile = XFile.fromData(
+              response.bodyBytes,
+              mimeType: mimeType,
+              name: fileName,
+            );
+
+            await Share.shareXFiles(
+              [xFile],
+              text: shareText.isNotEmpty ? shareText : 'Shared from Cycle Snap',
+              subject: title.isNotEmpty ? title : 'Shared cycle snap',
+            );
+            return;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error sharing snap media: $e');
+    }
+
+    await Share.share(
+      shareText.isNotEmpty ? shareText : 'Shared from Cycle Snap',
+      subject: title.isNotEmpty ? title : 'Shared cycle snap',
     );
   }
 
@@ -731,10 +892,17 @@ Widget _buildPostItem(PostModel post) {
               borderRadius: BorderRadius.circular(8),
               child: CachedNetworkImage(
                 imageUrl: post.imageUrl,
+                cacheKey: post.imageUrl.isNotEmpty ? post.imageUrl : null,
                 fit: BoxFit.cover,
+                memCacheWidth: 800,
+                memCacheHeight: 800,
+                useOldImageOnUrlChange: true,
+                fadeInDuration: const Duration(milliseconds: 250),
+                fadeOutDuration: const Duration(milliseconds: 100),
+                placeholderFadeInDuration: const Duration(milliseconds: 100),
                 placeholder: (context, url) => Container(
                   color: Colors.grey[200],
-                  child: const Center(child: CircularProgressIndicator()),
+                  child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
                 ),
                 errorWidget: (context, url, error) {
                   debugPrint('Recent Post image load error: $error for URL: $url');
@@ -759,15 +927,16 @@ Widget _buildPostItem(PostModel post) {
                   children: [
                     GestureDetector(
                       onTap: isLikeLoading 
-                          ? null // Loading ke time click disable rahega
+                          ? null
                           : () async {
+                              if (!mounted) return;
                               setState(() {
                                 _loadingPostIds.add(post.id);
                               });
-                              
-                              // Aapka purana toggleLike function yahan await hoga
+
                               await toggleLike(post); 
-                              
+
+                              if (!mounted) return;
                               setState(() {
                                 _loadingPostIds.remove(post.id);
                               });
@@ -781,11 +950,15 @@ Widget _buildPostItem(PostModel post) {
                                 valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
                               ),
                             )
-                          : Image.asset(
-                              'assets/images/like.png', // Aapka assets path check kar lein
-                              width: 24,
-                              height: 24,
-                              color: post.likedByMe ? Colors.red : Colors.black54,
+                          : AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 160),
+                              child: Image.asset(
+                                'assets/images/like.png',
+                                key: ValueKey(post.likedByMe),
+                                width: 24,
+                                height: 24,
+                                color: post.likedByMe ? Colors.red : Colors.black54,
+                              ),
                             ),
                     ),
                     const SizedBox(height: 4),
@@ -820,9 +993,7 @@ Widget _buildPostItem(PostModel post) {
 
                 // Share Button (Custom Image)
                 GestureDetector(
-                  onTap: () async {
-                    await Share.share('${post.title}\n\n${post.content}');
-                  },
+                  onTap: () => _sharePost(post),
                   child: Image.asset(
                     'assets/images/send.png',
                     width: 24,
@@ -963,7 +1134,7 @@ Widget _buildPostItem(PostModel post) {
   );
 }
 
-  
+
 
 // Widget _buildSnapGrid(Future<List<SnapModel>> future) {
 //   return Column(
@@ -1347,8 +1518,7 @@ Widget _buildSnapGrid(Future<List<SnapModel>> future) {
                               top: 8,
                               right: 8,
                               child: GestureDetector(
-                                onTap: () => print(
-                                    'More options clicked for: ${snap.title}'),
+                                onTap: () => _shareSnap(snap),
                                 child: Container(
                                   padding: const EdgeInsets.all(6),
                                   decoration: BoxDecoration(

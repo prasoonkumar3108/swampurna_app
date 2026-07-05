@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -9,6 +10,8 @@ import 'dart:convert';
 import '../../../../core/services/auth_service.dart';
 import '../../../../core/services/token_storage_service.dart';
 import 'package:video_compress/video_compress.dart';
+import 'package:video_player/video_player.dart';
+import 'package:video_thumbnail/video_thumbnail.dart';
 
 
 enum PostType { recentPost, cycleSnap }
@@ -96,27 +99,27 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ListTile(
-                leading: const Icon(Icons.image),
-                title: const Text('Select Image'),
-                onTap: () async {
-                  Navigator.pop(context);
-
-                  final XFile? pickedFile = await _imagePicker.pickImage(
-                    source: ImageSource.gallery,
-                    maxWidth: 1920,
-                    maxHeight: 1080,
-                    imageQuality: 85,
-                  );
-
-                  if (pickedFile != null) {
-                    setState(() {
-                      _selectedMedia = File(pickedFile.path);
-                      _isVideo = false;
-                    });
-                  }
-                },
-              ),
+              // ListTile(
+              //   leading: const Icon(Icons.image),
+              //   title: const Text('Select Image'),
+              //   onTap: () async {
+              //     Navigator.pop(context);
+              //
+              //     final XFile? pickedFile = await _imagePicker.pickImage(
+              //       source: ImageSource.gallery,
+              //       maxWidth: 1920,
+              //       maxHeight: 1080,
+              //       imageQuality: 85,
+              //     );
+              //
+              //     if (pickedFile != null) {
+              //       setState(() {
+              //         _selectedMedia = File(pickedFile.path);
+              //         _isVideo = false;
+              //       });
+              //     }
+              //   },
+              // ),
               ListTile(
                 leading: const Icon(Icons.videocam),
                 title: const Text('Select Video'),
@@ -291,6 +294,55 @@ Future<Map<String, dynamic>?> _uploadToBackendAPI(File file) async {
     return null;
   }
 }
+
+Future<void> _playSelectedVideo() async {
+  if (_selectedMedia == null || !_isVideo) return;
+
+  final controller = VideoPlayerController.file(_selectedMedia!);
+  await controller.initialize();
+
+  if (!mounted) {
+    await controller.dispose();
+    return;
+  }
+
+  await controller.play();
+
+  if (!mounted) {
+    await controller.dispose();
+    return;
+  }
+
+  await showDialog(
+    context: context,
+    barrierDismissible: true,
+    builder: (context) {
+      return Dialog(
+        insetPadding: const EdgeInsets.all(16),
+        child: Stack(
+          children: [
+            AspectRatio(
+              aspectRatio: controller.value.aspectRatio,
+              child: VideoPlayer(controller),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+
+  await controller.pause();
+  await controller.dispose();
+}
+
 Future<void> _submitPost() async {
   if (_titleController.text.trim().isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -675,6 +727,108 @@ Future<File?> _compressVideo(File file) async {
   }
 
   Widget _buildSelectedMediaPreview() {
+    if (_isVideo) {
+      return Stack(
+        children: [
+          FutureBuilder<Uint8List?>(
+            future: VideoThumbnail.thumbnailData(
+              video: _selectedMedia!.path,
+              imageFormat: ImageFormat.JPEG,
+              maxWidth: 800,
+              quality: 85,
+            ),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  color: Colors.grey[200],
+                  child: const Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              if (snapshot.hasData && snapshot.data != null) {
+                return ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.memory(
+                    snapshot.data!,
+                    width: double.infinity,
+                    height: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                );
+              }
+
+              return Container(
+                width: double.infinity,
+                height: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.grey[200],
+                ),
+                child: const Center(
+                  child: Icon(Icons.videocam, size: 48, color: Colors.grey),
+                ),
+              );
+            },
+          ),
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: Colors.black.withOpacity(0.15),
+              ),
+            ),
+          ),
+          Center(
+            child: GestureDetector(
+              onTap: _playSelectedVideo,
+              child: const Icon(
+                Icons.play_circle_fill,
+                color: Colors.white,
+                size: 56,
+              ),
+            ),
+          ),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedMedia = null;
+                  _isVideo = false;
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.close, color: Colors.white, size: 20),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 8,
+            right: 8,
+            child: GestureDetector(
+              onTap: _pickMedia,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.edit, color: Colors.white, size: 20),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Stack(
       children: [
         Container(
